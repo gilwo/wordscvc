@@ -132,7 +132,7 @@ func TestCvcSetSimple(t *testing.T) {
 	set := NewSetLimit(1)
 
 	set.AddWord(cws[0])
-	if set.AddWord(cws[1]) == true {
+	if added, _ := set.AddWord(cws[1]); added == true {
 		t.Errorf(`cvcword %s, should not be joined to set
 			limited to 1 element %s`, cws[1], set)
 	}
@@ -165,7 +165,7 @@ func TestCvcSetFreq(t *testing.T) {
 	set.AddWord(cws[0])
 	set.AddWord(cws[1])
 	set.AddWord(cws[5])
-	if set.AddWord(cws[3]) {
+	if added, _ := set.AddWord(cws[3]); added == true {
 		t.Errorf(`cvcword %s, freq %d,
 			should not be joined to set %s with %d words of freq %d`,
 			cws[3], cws[3].freq, set.StringWithFreq(), set.freqabove,
@@ -186,7 +186,7 @@ func TestCvcSetFreq(t *testing.T) {
 
 	set2 := NewSetLimitFreq(2, 40, 1)
 	set2.AddWord(cws[5])
-	if set2.AddWord(cws[6]) {
+	if added, _ := set2.AddWord(cws[6]); added == true {
 		t.Errorf(`cvcword %s, freq %d,
 			should not be joined to set %s with %d words of freq %d`,
 			cws[6], cws[6].freq, set.StringWithFreq(), set.freqabove,
@@ -213,11 +213,11 @@ func TestCvcSet(t *testing.T) {
 	set := NewSet()
 
 	set.AddWord(w1)
-	if set.AddWord(wbad2) == true {
+	if added, _ := set.AddWord(wbad2); added == true {
 		t.Errorf("cvcword %s, should not be joined to set with %s",
 			wbad1, set)
 	}
-	if set.AddWord(wbad3) == true {
+	if added, _ := set.AddWord(wbad3); added == true {
 		t.Errorf("cvcword %s, should not be joined to set with %s",
 			wbad2, set)
 	}
@@ -226,7 +226,7 @@ func TestCvcSet(t *testing.T) {
 	set.AddWord(w4)
 	set.AddWord(w5)
 	set.AddWord(w6)
-	if set.AddWord(wbad1) == true {
+	if added, _ := set.AddWord(wbad1); added == true {
 		t.Errorf(`cvcword %s, should no be joined set already have 2
 			vowels %s`, wbad1, set)
 	}
@@ -237,7 +237,11 @@ func TestCvcSet(t *testing.T) {
 	if set.count != 10 {
 		t.Error("set does not contain 10 cvc words %s", set)
 	}
-	if set.AddWord(wbad1) == true {
+	if added, _ := set.AddWord(wbad1); added == true {
+		t.Errorf("cvcword %s, should no be joined to set with %s",
+			wbad1, set)
+	}
+	if _, full := set.AddWord(wbad1); full != true {
 		t.Errorf("cvcword %s, should no be joined to set with %s",
 			wbad1, set)
 	}
@@ -261,7 +265,7 @@ func TestCvcGroupSetSimple(t *testing.T) {
 	group.AddWord(cws[2])
 	group.AddWord(cws[3])
 	// fmt.Printf("group content: %s", group)
-	if group.AddWord(cws[4]) {
+	if added, _ := group.AddWord(cws[4]); added == true {
 		t.Errorf("cvcword %s, should not be joined to "+
 			"group with %s", cws[4], group)
 	}
@@ -275,7 +279,7 @@ func TestCvcGroupSet(t *testing.T) {
 	group.AddWord(cws[0])
 	group.AddWord(cws[1])
 	// group.AddWord(cws[2])
-	if group.AddWord(cws[0]) {
+	if added, _ := group.AddWord(cws[0]); added == true {
 		t.Errorf("cvcword %s, should not be joined to "+
 			"group with %s", cws[0], group)
 

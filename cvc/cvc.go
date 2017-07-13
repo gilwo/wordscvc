@@ -189,30 +189,30 @@ func (wset *CvcSet) freqCheckOk(w *CvcWord) bool {
 	return true
 }
 
-func (wset *CvcSet) AddWord(w *CvcWord) bool {
+func (wset *CvcSet) AddWord(w *CvcWord) (added bool, full bool) {
 	if wset.count == wset.setlimit {
-		return false
+		return false, true
 	}
 	if _, c1_already := wset.cMap[w.c1]; c1_already {
 		// print("%s already in set", w.c1)
-		return false
+		return false, false
 	}
 
 	if _, c2_already := wset.cMap[w.c2]; c2_already {
 		// print("%s already in set", w.c2)
-		return false
+		return false, false
 	}
 
 	if v_count, v_exist := wset.vMap[w.v]; v_exist {
 		if v_count > 1 {
-			return false
+			return false, false
 		}
 	} else {
 		wset.vMap[w.v] = 0
 	}
 
 	if !wset.freqCheckOk(w) {
-		return false
+		return false, false
 	}
 
 	wset.cMap[w.c1] = 1
@@ -220,7 +220,11 @@ func (wset *CvcSet) AddWord(w *CvcWord) bool {
 	wset.vMap[w.v] += 1
 	wset.count += 1
 	wset.list = append(wset.list, w)
-	return true
+
+	if wset.count == wset.setlimit {
+		return true, true
+	}
+	return true, false
 }
 
 type CvcGroupSet struct {
@@ -271,11 +275,11 @@ func (wg *CvcGroupSet) StringWithFreq() string {
 	return out
 }
 
-func (wg *CvcGroupSet) AddWord(w *CvcWord) bool {
+func (wg *CvcGroupSet) AddWord(w *CvcWord) (added bool, full bool) {
 	// fmt.Printf("count: %d\n", wg.count)
 	switch {
 	case wg.count == wg.grouplimit && wg.list[wg.current].count == wg.persetlimit:
-		return false
+		return false, true
 	case wg.count == 0:
 		fallthrough
 	case wg.list[wg.current].count == wg.persetlimit:
@@ -287,7 +291,7 @@ func (wg *CvcGroupSet) AddWord(w *CvcWord) bool {
 	wg.current = wg.count - 1 // count is one bases, current is zero based
 	for _, set := range wg.list {
 		if set.list.contain(w) {
-			return false
+			return false, false
 		}
 	}
 	return wg.list[wg.current].AddWord(w)
