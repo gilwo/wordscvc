@@ -342,4 +342,11 @@ func TestCvcMap(t *testing.T) {
 	if copymap.String() != testString2 {
 		t.Errorf("map copy content '%s' not identical to expected '%s'", copymap, testString2)
 	}
+
+	for _, e := range cws[0:1] {
+		tmap := *copymap.GetCm()
+		if _, ok := tmap[e]; !ok {
+			t.Errorf("word '%s' not found in map copy '%s'", e, copymap)
+		}
+	}
 }

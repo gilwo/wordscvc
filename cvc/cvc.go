@@ -341,6 +341,10 @@ type CvcWordMap struct {
 	keys CvcList
 }
 
+func (wmap *CvcWordMap) GetCm() *map[*CvcWord]int {
+	return &wmap.cm
+}
+
 func NewCvcWordMap() *CvcWordMap {
 	var newmap *CvcWordMap = &CvcWordMap{
 		cm: make(map[*CvcWord]int),
