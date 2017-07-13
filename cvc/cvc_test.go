@@ -79,12 +79,12 @@ func TestCVCListAsString(t *testing.T) {
 	//fmt.Println(strings.SplitN(wl.String(), ", ", -1))
 	//fmt.Println(wl.dump())
 
-	w1dump := fmt.Sprintf(wl[0].dumpString())
+	wldump := fmt.Sprintf(wl[0].dumpString())
 	dumpFormat := fmt.Sprintf("c[%s]:v[%s]:c[%s] [%s:%d]",
 		w1.c1, w1.v, w1.c2, w1.actword, w1.freq)
-	if w1dump != dumpFormat {
+	if wldump != dumpFormat {
 		t.Errorf("cvcword dumping '%s' is not in the proper "+
-			"format '%s'", w1dump, dumpFormat)
+			"format '%s'", wldump, dumpFormat)
 	}
 
 }
