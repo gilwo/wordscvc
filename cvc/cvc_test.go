@@ -86,11 +86,10 @@ func TestCVCListAsString(t *testing.T) {
 		t.Errorf("cvcword dumping '%s' is not in the proper "+
 			"format '%s'", wldump, dumpFormat)
 	}
-
 }
 
 func TestCVCcontain(t *testing.T) {
-	_, cws := prepareTestData()
+	words, cws := prepareTestData()
 	w1 := cws[0]
 	w2 := cws[1]
 	w3 := cws[2]
@@ -120,10 +119,13 @@ func TestCVCcontain(t *testing.T) {
 			wlist, w3)
 	}
 
-	//z := CvcPool{}
-	//if _, ok := z["bogus"]; ok {
-	//	t.Error("cvc pool should be empty")
-	//}
+	wlist2 := wlist.CopyList()
+	expected := words[0] + " " + words[1] + " " + words[2] + " " + words[2]
+	if wlist2.asString() != expected {
+		msg := fmt.Sprintf("copy of CVCList as string malformed: "+
+			"expected [%s], actual [%s]", expected, wlist2.asString())
+		t.Error(msg)
+	}
 }
 
 func TestCvcSetSimple(t *testing.T) {
@@ -253,6 +255,14 @@ func TestCvcSet(t *testing.T) {
 		t.Errorf("set content: %s, words list: %s\n",
 			set_string, words_string)
 	}
+
+	set2 := set.CopySet()
+	set2_string := strings.Replace(set2.String(), ",", "", -1)
+
+	if set2_string != words_string {
+		t.Errorf("copy of set content: %s, words list: %s\n",
+			set2_string, words_string)
+	}
 }
 
 func TestCvcGroupSetSimple(t *testing.T) {
@@ -297,6 +307,12 @@ func TestCvcGroupSet(t *testing.T) {
 	)
 	if group.StringWithFreq() != testStringWithFreq {
 		t.Errorf("group '%s', is not as test string '%s'", group.StringWithFreq(),
+			testStringWithFreq)
+	}
+
+	group2 := group.CopyCvcGroupSet()
+	if group2.StringWithFreq() != testStringWithFreq {
+		t.Errorf("copy group '%s', is not as test string '%s'", group2.StringWithFreq(),
 			testStringWithFreq)
 	}
 }

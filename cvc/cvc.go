@@ -105,6 +105,14 @@ func (wlist *CvcList) StringWithFreq() string {
 	return "[" + strings.Replace(wlist.asStringWithFreq(), " ", ", ", -1) + "]"
 }
 
+func (wlist *CvcList) CopyList() *CvcList {
+	newlist := &CvcList{}
+	for _, e := range *wlist {
+		*newlist = append(*newlist, e)
+	}
+	return newlist
+}
+
 // func (wlist *CvcList) GetConsFromList() map[string]int {
 // 	cmap := make
 //
@@ -227,6 +235,22 @@ func (wset *CvcSet) AddWord(w *CvcWord) (added bool, full bool) {
 	return true, false
 }
 
+func (wset *CvcSet) CopySet() *CvcSet {
+	newset := NewSetLimitFreq(
+		wset.setlimit, wset.freqcutoff, wset.freqabove)
+	for k, v := range wset.cMap {
+		newset.cMap[k] = v
+	}
+	for k, v := range wset.vMap {
+		newset.vMap[k] = v
+	}
+	for _, e := range wset.list {
+		newset.list = append(newset.list, e)
+	}
+	newset.count = wset.count
+	return newset
+}
+
 type CvcGroupSet struct {
 	list        CvcSetList
 	count       int
@@ -295,6 +319,21 @@ func (wg *CvcGroupSet) AddWord(w *CvcWord) (added bool, full bool) {
 		}
 	}
 	return wg.list[wg.current].AddWord(w)
+}
+
+func (wg *CvcGroupSet) CopyCvcGroupSet() *CvcGroupSet {
+	newgroup := NewGroupSetLimitFreq(
+		wg.grouplimit, wg.persetlimit, wg.freqcutoff, wg.freqabove)
+
+	newgroup.count = wg.count
+	newgroup.current = wg.current
+
+	for _, e := range wg.list {
+		newset := e.CopySet()
+		newgroup.list = append(newgroup.list, newset)
+	}
+
+	return newgroup
 }
 
 type CvcWordMap struct {
