@@ -56,6 +56,7 @@ func prepareTestData() ([]string, []*CvcWord) {
 	}
 	return words, cvcwords
 }
+
 func TestCVCListAsString(t *testing.T) {
 	words, cws := prepareTestData()
 	w1 := cws[0]
@@ -63,8 +64,15 @@ func TestCVCListAsString(t *testing.T) {
 	w3 := cws[2]
 
 	expected := words[0] + " " + words[1] + " " + words[2]
-	var wl CvcList
-	wl = append(wl, w1, w2, w3)
+	wl := &CvcList{}
+
+	if strings.Compare("", fmt.Sprintf("%s", wl)) != 0 {
+		t.Errorf("list is not empty")
+	}
+	if strings.Compare("", fmt.Sprintf("%s", wl.StringWithFreq())) != 0 {
+		t.Errorf("list is not empty")
+	}
+	*wl = append(*wl, w1, w2, w3)
 
 	if wl.asString() != expected {
 		msg := fmt.Sprintf("CVCList as string malformed: "+
@@ -79,7 +87,7 @@ func TestCVCListAsString(t *testing.T) {
 	//fmt.Println(strings.SplitN(wl.String(), ", ", -1))
 	//fmt.Println(wl.dump())
 
-	wldump := fmt.Sprintf(wl[0].dumpString())
+	wldump := fmt.Sprintf((*wl)[0].dumpString())
 	dumpFormat := fmt.Sprintf("c[%s]:v[%s]:c[%s] [%s:%d]",
 		w1.c1, w1.v, w1.c2, w1.actword, w1.freq)
 	if wldump != dumpFormat {
