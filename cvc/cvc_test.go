@@ -317,6 +317,56 @@ func TestCvcGroupSet(t *testing.T) {
 	}
 }
 
+func TestCvcGroupFreq(t *testing.T) {
+	_, cws := prepareTestData()
+
+	cws[0].freq = 17
+	cws[1].freq = 21
+	cws[2].freq = 4
+	cws[3].freq = 105
+	cws[4].freq = 11
+	cws[5].freq = 9
+	cws[6].freq = 29
+	cws[7].freq = 309
+	cws[8].freq = 4444
+
+	freq_cutoff := 20
+	freq_above := 1
+	group := NewGroupSetLimitFreq(3, 2, freq_cutoff, freq_above)
+
+	group.AddWord(cws[1])
+	// test 2nd word lower then cutoff
+	if added, _ := group.AddWord(cws[3]); added {
+		t.Errorf("frequency mismatch: cutoff: %d, above cutoff %d: word '%s' should be added to group '%s'",
+			freq_cutoff, freq_above, cws[3].dumpString(), group.StringWithFreq())
+	}
+	group.AddWord(cws[0])
+	// test existing word in previous set
+	if added, _ := group.AddWord(cws[1]); added {
+		t.Errorf("frequency mismatch: cutoff: %d, above cutoff %d: word '%s' should be added to group '%s'",
+			freq_cutoff, freq_above, cws[1].dumpString(), group.StringWithFreq())
+	}
+	group.AddWord(cws[2])
+	// test 2nd word lower then cutoff
+	if added, _ := group.AddWord(cws[4]); added {
+		t.Errorf("frequency mismatch: cutoff: %d, above cutoff %d: word '%s' should be added to group '%s'",
+			freq_cutoff, freq_above, cws[4].dumpString(), group.StringWithFreq())
+	}
+	group.AddWord(cws[3])
+
+	group.AddWord(cws[6])
+	// test 2nd word higher then cutoff
+	if added, _ := group.AddWord(cws[7]); added {
+		t.Errorf("frequency mismatch: cutoff: %d, above cutoff %d: word '%s' should be added to group '%s'",
+			freq_cutoff, freq_above, cws[7].dumpString(), group.StringWithFreq())
+	}
+	group.AddWord(cws[5])
+
+	if _, full := group.AddWord(cws[8]); !full {
+		t.Errorf("group '%s' is full", group.StringWithFreq())
+	}
+}
+
 func TestCvcMap(t *testing.T) {
 	_, cws := prepareTestData()
 

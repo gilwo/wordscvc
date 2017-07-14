@@ -320,7 +320,8 @@ func (wg *CvcGroupSet) AddWord(w *CvcWord) (added bool, full bool) {
 			return false, false
 		}
 	}
-	return wg.list[wg.current].AddWord(w)
+	added, _ = wg.list[wg.current].AddWord(w)
+	return added, false
 }
 
 func (wg *CvcGroupSet) CopyCvcGroupSet() *CvcGroupSet {
