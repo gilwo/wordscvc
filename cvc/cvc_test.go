@@ -397,16 +397,18 @@ func TestCvcMap(t *testing.T) {
 	newmap.AddWord(cws[1])
 
 	copymap := newmap.CopyCvcWordMap()
+	newmap.AddWord(cws[2])
 
 	testString2 := fmt.Sprintf("%s:1, %s:1", cws[0], cws[1])
 	if copymap.String() != testString2 {
 		t.Errorf("map copy content '%s' not identical to expected '%s'", copymap, testString2)
 	}
 
-	for _, e := range cws[0:1] {
-		tmap := *copymap.GetCm()
-		if _, ok := tmap[e]; !ok {
-			t.Errorf("word '%s' not found in map copy '%s'", e, copymap)
-		}
+	tmap := *newmap.GetCm()
+	tmapcopy := *copymap.GetCm()
+
+	if len(tmap) == len(tmapcopy) {
+		t.Errorf("copy of word map len '%d' and original word map len '%d' "+
+			"should not be the same ", len(tmapcopy), len(tmap))
 	}
 }
