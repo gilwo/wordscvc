@@ -308,7 +308,9 @@ func (wg *CvcGroupSet) AddWord(w *CvcWord) (added bool, full bool) {
 		fallthrough
 	case wg.list[wg.current].count == wg.persetlimit:
 		// fmt.Printf("adding new set\n")
-		wg.list = append(wg.list, NewSetLimit(wg.persetlimit))
+		// wg.list = append(wg.list, NewSetLimit(wg.persetlimit))
+		wg.list = append(wg.list,
+			NewSetLimitFreq(wg.persetlimit, wg.freqcutoff, wg.freqabove))
 		wg.count += 1
 	}
 	// fmt.Printf("count: %d\n", wg.count)
