@@ -285,25 +285,27 @@ func TestCvcGroupSetSimple(t *testing.T) {
 func TestCvcGroupSet(t *testing.T) {
 	_, cws := prepareTestData()
 
-	group := NewGroupSetLimitFreq(2, 2, 40, 2)
+	group := NewGroupSetLimit(2, 2)
 	group.AddWord(cws[0])
 	group.AddWord(cws[1])
-	// group.AddWord(cws[2])
 	if added, _ := group.AddWord(cws[0]); added == true {
 		t.Errorf("cvcword %s, should not be joined to "+
 			"group with %s", cws[0], group)
-
 	}
+	group.AddWord(cws[2])
+	group.AddWord(cws[3])
 
-	testString := fmt.Sprintf("\n\t[%s, %s]\n\t\n", cws[0], cws[1])
+	testString := fmt.Sprintf("\n\t[%s, %s]\n\t[%s, %s]\n", cws[0], cws[1], cws[2], cws[3])
 	if group.String() != testString {
 		t.Errorf("group '%s', is not as test string '%s'", group.String(),
 			testString)
 	}
 
-	testStringWithFreq := fmt.Sprintf("\n\t[%s:%d, %s:%d]\n\t\n",
+	testStringWithFreq := fmt.Sprintf("\n\t[%s:%d, %s:%d]\n\t[%s:%d, %s:%d]\n",
 		cws[0], cws[0].freq,
 		cws[1], cws[1].freq,
+		cws[2], cws[2].freq,
+		cws[3], cws[3].freq,
 	)
 	if group.StringWithFreq() != testStringWithFreq {
 		t.Errorf("group '%s', is not as test string '%s'", group.StringWithFreq(),
