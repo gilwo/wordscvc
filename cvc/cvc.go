@@ -380,6 +380,20 @@ func (wmap *CvcWordMap) AddWord(w *CvcWord) bool {
 	return true
 }
 
+func (wmap *CvcWordMap) DelWord(w *CvcWord) bool {
+	if _, w_exist := wmap.cm[w]; !w_exist {
+		return false
+	}
+	for i, k := range wmap.keys {
+		if k == w {
+			wmap.keys = append(wmap.keys[:i], wmap.keys[i+1:]...)
+			break
+		}
+	}
+	delete(wmap.cm, w)
+	return true
+}
+
 func (wmap *CvcWordMap) String() string {
 	out := ""
 	sortedkeys := wmap.keys

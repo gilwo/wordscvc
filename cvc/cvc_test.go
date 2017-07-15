@@ -411,4 +411,13 @@ func TestCvcMap(t *testing.T) {
 		t.Errorf("copy of word map len '%d' and original word map len '%d' "+
 			"should not be the same ", len(tmapcopy), len(tmap))
 	}
+
+	copymap.DelWord(cws[0])
+	if copymap.DelWord(cws[0]) == true {
+		t.Errorf("word '%s' should not be in map", cws[0])
+	}
+	if fmt.Sprintf("%s", copymap) != fmt.Sprintf("%s:1", cws[1]) {
+		t.Errorf("content of map is not as expected")
+	}
+	// fmt.Printf("%s\n", newmap)
 }
