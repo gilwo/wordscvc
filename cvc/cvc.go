@@ -44,8 +44,6 @@ func (w *CvcWord) String() string {
 // CvcList ...
 type CvcList []*CvcWord
 
-// CvcPool ...
-type CvcPool map[string]map[string]CvcList
 
 func (wlist *CvcList) contain(cw *CvcWord) bool {
 	for _, e := range *wlist {
@@ -417,3 +415,6 @@ func (wmap *CvcWordMap) String() string {
 func (wmap *CvcWordMap) Size() int {
 	return len(wmap.cm)
 }
+
+// // CvcPool ...
+// type CvcPool map[string]map[string]CvcList
