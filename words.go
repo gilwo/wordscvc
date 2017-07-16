@@ -7,11 +7,65 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gilwo/words/cvc"
 )
 
 var consonents, vowels map[string]int
+
+type workert chan struct{}
+type msgt chan string
+
+func findGroups(doneCollector chan workert, report msgt, group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
+	done := make(workert)
+	defer func() {
+		recover()
+		// z := recover()
+		// fmt.Println("recovered from %s", z)
+		return
+	}()
+	doneCollector <- done
+	zmap := *wordmap.GetCm()
+	for k, _ := range zmap {
+		if added, full := group.AddWord(k); full == true {
+			msg := fmt.Sprintf("group completed\n%s", group.StringWithFreq())
+			fmt.Println(msg)
+			select {
+			case <-done:
+				// fmt.Println("done issued")
+				return
+			default:
+				report <- msg
+			}
+		} else if added == false {
+			continue
+		}
+		wordmap.DelWord(k)
+		go findGroups(doneCollector, report, group.CopyCvcGroupSet(), wordmap.CopyCvcWordMap())
+	}
+}
+
+func collectReports2(done, collectingDone workert, report msgt) {
+	const reportingDone string = "reporting done"
+	for {
+		select {
+		case msg := <-report:
+			if msg == reportingDone {
+				fmt.Println("reached end of reports: closing done")
+				close(done)
+				return
+			}
+			fmt.Println(msg)
+		case <-collectingDone:
+			go func() {
+				fmt.Println("reached end of reports")
+				report <- "reporting done"
+			}()
+			// default:
+		}
+	}
+}
 
 func main() {
 
@@ -21,20 +75,34 @@ func main() {
 	consonents = getMap("consonents.txt")
 	vowels = getMap("vowels.txt")
 
-	// fmt.Println("consonents")
-	// for k, _ := range consonents {
-	// 	fmt.Printf("%s\n", k)
-	// }
-	// fmt.Println("vowels")
-	// for k, _ := range vowels {
-	// 	fmt.Printf("%s\n", k)
-	// }
-
 	fmt.Printf("consonents: \n%s\n", getOrderedMapString(consonents))
 	fmt.Printf("vowels: \n%s\n", getOrderedMapString(vowels))
 
-	// g1 := cvc.NewGroupSetLimitFreq(2, 2, 10, 3)
+	doneGroupCollector := make(chan workert)
+	dummyDone := make(workert)
+	doneReporter := make(workert)
+	doneCollecting := make(workert)
+	report := make(msgt)
+	g1 := cvc.NewGroupSetLimitFreq(20, 6, 0, 0)
 
+	go collectReports2(doneReporter, doneCollecting, report)
+	go findGroups(doneGroupCollector, report, g1, wmap)
+
+	time.Sleep(10 * time.Second)
+
+	go func() { time.Sleep(1 * time.Second); doneGroupCollector <- dummyDone }()
+	for d := range doneGroupCollector {
+		if d == dummyDone {
+			fmt.Println("dummy reached")
+			break
+		}
+		close(d)
+
+	}
+	doneCollecting <- struct{}{}
+	<-doneReporter
+	close(doneGroupCollector)
+	close(report)
 }
 
 func getOrderedMapString(m map[string]int) string {
