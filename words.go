@@ -69,14 +69,13 @@ func collectReports2(done, collectingDone workert, report msgt) {
 
 func main() {
 
-	wmap := getWordsMap()
-	fmt.Printf("map size: %d\ncontent:\n%s\n", wmap.Size(), wmap)
-
 	consonents = getMap("consonents.txt")
 	vowels = getMap("vowels.txt")
-
 	fmt.Printf("consonents: \n%s\n", getOrderedMapString(consonents))
 	fmt.Printf("vowels: \n%s\n", getOrderedMapString(vowels))
+
+	wmap := getWordsMap()
+	fmt.Printf("map size: %d\ncontent:\n%s\n", wmap.Size(), wmap)
 
 	doneGroupCollector := make(chan workert)
 	dummyDone := make(workert)

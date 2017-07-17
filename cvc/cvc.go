@@ -44,7 +44,6 @@ func (w *CvcWord) String() string {
 // CvcList ...
 type CvcList []*CvcWord
 
-
 func (wlist *CvcList) contain(cw *CvcWord) bool {
 	for _, e := range *wlist {
 		if e.actword == cw.actword {
