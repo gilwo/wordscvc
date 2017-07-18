@@ -14,11 +14,12 @@ import (
 
 var consonents, vowels map[string]int
 
-type workert chan struct{}
-type msgt chan string
+type workerChan chan struct{}
+type msgChan chan string
+type statChan chan string
 
-func findGroups(doneCollector chan workert, report msgt, group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
-	done := make(workert)
+func findGroups(doneCollector chan workerChan, report msgChan, group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
+	done := make(workerChan)
 	defer func() {
 		recover()
 		// z := recover()
@@ -46,21 +47,21 @@ func findGroups(doneCollector chan workert, report msgt, group *cvc.CvcGroupSet,
 	}
 }
 
-func collectReports2(done, collectingDone workert, report msgt) {
-	const reportingDone string = "reporting done"
+func collectReports(doneReporter, collectingDone workerChan, report msgChan) {
+	const doneMsg string = "reporting done"
 	for {
 		select {
 		case msg := <-report:
-			if msg == reportingDone {
+			if msg == doneMsg {
 				fmt.Println("reached end of reports: closing done")
-				close(done)
+				close(doneReporter)
 				return
 			}
 			fmt.Println(msg)
 		case <-collectingDone:
 			go func() {
 				fmt.Println("reached end of reports")
-				report <- "reporting done"
+				report <- doneMsg
 			}()
 			// default:
 		}
@@ -77,17 +78,18 @@ func main() {
 	wmap := getWordsMap()
 	fmt.Printf("map size: %d\ncontent:\n%s\n", wmap.Size(), wmap)
 
-	doneGroupCollector := make(chan workert)
-	dummyDone := make(workert)
-	doneReporter := make(workert)
-	doneCollecting := make(workert)
-	report := make(msgt)
-	g1 := cvc.NewGroupSetLimitFreq(20, 6, 0, 0)
+	doneGroupCollector := make(chan workerChan)
+	dummyDone := make(workerChan)
+	doneReporter := make(workerChan)
+	doneCollecting := make(workerChan)
+	report := make(msgChan)
+	// g1 := cvc.NewGroupSetLimitFreq(5, 10, 25, 3)
+	baseGroup := cvc.NewGroupSetLimitFreq(5, 10, 0, 0)
 
-	go collectReports2(doneReporter, doneCollecting, report)
-	go findGroups(doneGroupCollector, report, g1, wmap)
+	go collectReports(doneReporter, doneCollecting, report)
+	go findGroups(doneGroupCollector, report, baseGroup, wmap)
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(30 * time.Second)
 
 	go func() { time.Sleep(1 * time.Second); doneGroupCollector <- dummyDone }()
 	for d := range doneGroupCollector {
