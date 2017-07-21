@@ -14,56 +14,40 @@ import (
 
 var consonents, vowels map[string]int
 
-type workerChan chan struct{}
-type msgChan chan string
-type statChan chan string
+var done = make(chan bool)
+var stop = make(chan bool)
+var msgs = make(chan string, 100)
+var status = make(chan string, 100)
 
-func findGroups(doneCollector chan workerChan, report msgChan, group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
-	done := make(workerChan)
+func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 	defer func() {
 		recover()
 		// z := recover()
 		// fmt.Println("recovered from %s", z)
 		return
 	}()
-	doneCollector <- done
+	exit := false
 	zmap := *wordmap.GetCm()
 	for k, _ := range zmap {
-		if added, full := group.AddWord(k); full == true {
-			msg := fmt.Sprintf("group completed\n%s", group.StringWithFreq())
-			fmt.Println(msg)
-			select {
-			case <-done:
-				// fmt.Println("done issued")
-				return
-			default:
-				report <- msg
-			}
-		} else if added == false {
-			continue
-		}
-		wordmap.DelWord(k)
-		go findGroups(doneCollector, report, group.CopyCvcGroupSet(), wordmap.CopyCvcWordMap())
-	}
-}
-
-func collectReports(doneReporter, collectingDone workerChan, report msgChan) {
-	const doneMsg string = "reporting done"
-	for {
 		select {
+		case <-done:
 		case msg := <-report:
 			if msg == doneMsg {
 				fmt.Println("reached end of reports: closing done")
 				close(doneReporter)
 				return
+			exit = true
+		default:
+			if added, full := group.AddWord(k); full == true {
+				msg := fmt.Sprintf("group completed\n%s", group.StringWithFreq())
+				msgs <- msg
+			} else if added {
+				wordmap.DelWord(k)
+				go findGroups(group.CopyCvcGroupSet(), wordmap.CopyCvcWordMap())
 			}
-			fmt.Println(msg)
-		case <-collectingDone:
-			go func() {
-				fmt.Println("reached end of reports")
-				report <- doneMsg
-			}()
-			// default:
+		}
+		if exit {
+			return
 		}
 	}
 }
@@ -78,32 +62,43 @@ func main() {
 	wmap := getWordsMap()
 	fmt.Printf("map size: %d\ncontent:\n%s\n", wmap.Size(), wmap)
 
-	doneGroupCollector := make(chan workerChan)
-	dummyDone := make(workerChan)
-	doneReporter := make(workerChan)
-	doneCollecting := make(workerChan)
-	report := make(msgChan)
-	// g1 := cvc.NewGroupSetLimitFreq(5, 10, 25, 3)
-	baseGroup := cvc.NewGroupSetLimitFreq(5, 10, 0, 0)
+	baseGroup := cvc.NewGroupSetLimitFreq(10, 10, 15, 4)
 
-	go collectReports(doneReporter, doneCollecting, report)
-	go findGroups(doneGroupCollector, report, baseGroup, wmap)
+	// status collector
+	go func() {
+		for {
+			var s string
+			select {
+			case s := <-status:
+				fmt.Println(s)
+			default:
+			}
+			if s == "end messages" {
+				break
+			}
+		}
+	}()
+
+	// group collector
+	go func() {
+		count := 1
+		for s := range msgs {
+			if s == "end messages" {
+				close(stop)
+				return
+			}
+			fmt.Printf("%d\n%s", count, s)
+			count += 1
+		}
+	}()
+	go findGroups(baseGroup, wmap)
 
 	time.Sleep(30 * time.Second)
+	close(done)
+	msgs <- "end messages"
+	status <- "end messages"
+	<-stop
 
-	go func() { time.Sleep(1 * time.Second); doneGroupCollector <- dummyDone }()
-	for d := range doneGroupCollector {
-		if d == dummyDone {
-			fmt.Println("dummy reached")
-			break
-		}
-		close(d)
-
-	}
-	doneCollecting <- struct{}{}
-	<-doneReporter
-	close(doneGroupCollector)
-	close(report)
 }
 
 func getOrderedMapString(m map[string]int) string {
