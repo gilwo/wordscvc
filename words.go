@@ -31,11 +31,6 @@ func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 	for k := range zmap {
 		select {
 		case <-done:
-		case msg := <-report:
-			if msg == doneMsg {
-				fmt.Println("reached end of reports: closing done")
-				close(doneReporter)
-				return
 			exit = true
 		default:
 			if added, full := group.AddWord(k); full == true {
