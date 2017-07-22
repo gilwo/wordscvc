@@ -251,7 +251,7 @@ func TestCvcSet(t *testing.T) {
 	set.AddWord(w9)
 	set.AddWord(w10)
 	if set.count != 10 {
-		t.Error("set does not contain 10 cvc words %s", set)
+		t.Errorf("set does not contain 10 cvc words %s", set)
 	}
 	if added, _ := set.AddWord(wbad1); added == true {
 		t.Errorf("cvcword %s, should no be joined to set with %s",
@@ -383,8 +383,8 @@ func TestCvcGroupFreq(t *testing.T) {
 	}
 
 	if group.Count() != group.MaxCount() {
-		t.Errorf("group count is not fit with group max count",
-			group.Count(), group.MaxCount)
+		t.Errorf("group count %d is not fit with group max count %d",
+			group.Count(), group.MaxCount())
 	}
 }
 
