@@ -28,7 +28,7 @@ func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 	}()
 	exit := false
 	zmap := *wordmap.GetCm()
-	for k, _ := range zmap {
+	for k := range zmap {
 		select {
 		case <-done:
 		case msg := <-report:
@@ -88,7 +88,7 @@ func main() {
 				return
 			}
 			fmt.Printf("%d\n%s", count, s)
-			count += 1
+			count++
 		}
 	}()
 	go findGroups(baseGroup, wmap)
@@ -104,7 +104,7 @@ func main() {
 func getOrderedMapString(m map[string]int) string {
 	out := ""
 	var sortedkeys []string
-	for k, _ := range m {
+	for k := range m {
 		sortedkeys = append(sortedkeys, k)
 	}
 	sort.Slice(sortedkeys,
@@ -120,7 +120,7 @@ func getOrderedMapString(m map[string]int) string {
 }
 
 func getMap(mapfile string) map[string]int {
-	var ret map[string]int = make(map[string]int)
+	var ret = make(map[string]int)
 	for _, wf := range getWordsFromFile(mapfile) {
 		ret[wf.word] = wf.number
 	}
