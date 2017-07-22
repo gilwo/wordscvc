@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"sort"
@@ -11,6 +12,50 @@ import (
 
 	"github.com/gilwo/words/cvc"
 )
+
+var globalInfo struct {
+	maxGroups                   int
+	freqCutoff                  int
+	freqWordsPerLineAboveCutoff int
+	vowelLimit                  int // 2
+	maxSets                     int
+	maxWords                    int
+	outResultFile               string
+	inWordsFile                 string
+	inConsonentFile             string
+	inVowelFile                 string
+	filterFiles                 string
+}
+
+func init() {
+	const (
+		defaultVowelsFile     = "vowels.txt"
+		defaultConsonentsFile = "consonents.txt"
+		defaultWordsFile      = "words_list.txt"
+	)
+	flag.IntVar(&globalInfo.maxGroups, "maxres", 20,
+		"maximum number of result groups to generate")
+	flag.IntVar(&globalInfo.maxSets, "maxset", 15,
+		"numbner of sets per group")
+	flag.IntVar(&globalInfo.maxWords, "maxwords", 10,
+		"numbner of words per set")
+	flag.IntVar(&globalInfo.freqCutoff, "freq", 25,
+		"frequency cutoff threshold for words, lower is more common")
+	flag.IntVar(&globalInfo.freqWordsPerLineAboveCutoff, "freqcutoff", 3,
+		"how many words to be above cutoff threshold per line")
+
+	flag.StringVar(&globalInfo.inConsonentFile, "consonents", defaultConsonentsFile,
+		"input file name for words list to use for creating the lines groups results")
+	flag.StringVar(&globalInfo.inVowelFile, "vowels", defaultVowelsFile,
+		"input file name for words list to use for creating the lines groups results")
+	flag.StringVar(&globalInfo.inWordsFile, "words", defaultWordsFile,
+		"input file name for words list to use for creating the lines groups results")
+
+	flag.StringVar(&globalInfo.filterFiles, "filter", "",
+		"input file name for filtered words")
+	flag.StringVar(&globalInfo.outResultFile, "output", "",
+		"output file for generated results (default when not set words_result.txt)")
+}
 
 var consonents, vowels map[string]int
 
@@ -49,15 +94,38 @@ func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 
 func main() {
 
-	consonents = getMap("consonents.txt")
-	vowels = getMap("vowels.txt")
+	flag.Parse()
+	if globalInfo.outResultFile == "" {
+		globalInfo.outResultFile = "words_result.txt"
+	}
+	fmt.Printf("\nlooking for max %d groups of %d sets (%d per set), "+
+		"with frequency cutoff of %d, %d words above cutoff threshold for each set\n"+
+		"using input word file \"%s\", \ninput vowel file \"%s\", \n"+
+		"input consonent file \"%s\", \noutput file \"%s\", \nfilter file \"%s\"\n",
+		globalInfo.maxGroups,
+		globalInfo.maxSets,
+		globalInfo.maxWords,
+		globalInfo.freqCutoff,
+		globalInfo.freqWordsPerLineAboveCutoff,
+		globalInfo.inWordsFile,
+		globalInfo.inVowelFile,
+		globalInfo.inConsonentFile,
+		globalInfo.outResultFile,
+		globalInfo.filterFiles)
+
+	consonents = getMap(globalInfo.inConsonentFile)
+	vowels = getMap(globalInfo.inVowelFile)
 	fmt.Printf("consonents: \n%s\n", getOrderedMapString(consonents))
 	fmt.Printf("vowels: \n%s\n", getOrderedMapString(vowels))
 
-	wmap := getWordsMap()
+	wmap := getWordsMap(globalInfo.inWordsFile)
 	fmt.Printf("map size: %d\ncontent:\n%s\n", wmap.Size(), wmap)
 
-	baseGroup := cvc.NewGroupSetLimitFreq(10, 10, 15, 4)
+	baseGroup := cvc.NewGroupSetLimitFreq(
+		globalInfo.maxSets,
+		globalInfo.maxWords,
+		globalInfo.freqCutoff,
+		globalInfo.freqWordsPerLineAboveCutoff)
 
 	// status collector
 	go func() {
@@ -122,10 +190,10 @@ func getMap(mapfile string) map[string]int {
 	return ret
 }
 
-func getWordsMap() *cvc.CvcWordMap {
+func getWordsMap(fname string) *cvc.CvcWordMap {
 	wmap := cvc.NewCvcWordMap()
 
-	for _, wf := range getWordsFromFile("words_list.txt") {
+	for _, wf := range getWordsFromFile(fname) {
 		var cvcw *cvc.CvcWord
 		wfV := string(wf.word[1])
 		if _, ok := vowels[wfV]; ok {
