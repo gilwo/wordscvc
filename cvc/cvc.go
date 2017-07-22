@@ -37,6 +37,10 @@ func (w *CvcWord) dumpString() string {
 		w.c1, w.v, w.c2, w.actword, w.freq)
 }
 
+func (w *CvcWord) DumpString() string {
+	return w.dumpString()
+}
+
 func (w *CvcWord) String() string {
 	return w.actword
 }

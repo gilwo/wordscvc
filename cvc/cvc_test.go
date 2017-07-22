@@ -13,7 +13,13 @@ func TestCVC(t *testing.T) {
 func TestCVCword(t *testing.T) {
 	w := NewCVCWord("X", "E", "Z", 55)
 
-	// println(w.dumpString())
+	expected := fmt.Sprintf("c[%s]:v[%s]:c[%s] [%s:%d]",
+		w.c1, w.v, w.c2, w.actword, w.freq)
+	actual := fmt.Sprintf("%s", w.DumpString())
+	if expected != actual {
+		t.Errorf("cvcword dump is not in the proper format: expected '%s', actual '%s'",
+			expected, actual)
+	}
 	//t.Fatal("abcd", 1234, "rr55")
 	zStr := fmt.Sprint(w)
 	if zStr != "XEZ" {
@@ -374,6 +380,11 @@ func TestCvcGroupFreq(t *testing.T) {
 
 	if _, full := group.AddWord(cws[8]); !full {
 		t.Errorf("group '%s' is full", group.StringWithFreq())
+	}
+
+	if group.Count() != group.MaxCount() {
+		t.Errorf("group count is not fit with group max count",
+			group.Count(), group.MaxCount)
 	}
 }
 
