@@ -90,6 +90,10 @@ func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 			return
 		}
 	}
+	if float64(group.Count()/group.MaxCount()) > float64(0.5) {
+		// status <- fmt.Sprintf("reached depth %d of %d", group.Count(), group.MaxCount())
+		fmt.Printf("reached depth %d of %d\n", group.Count(), group.MaxCount())
+	}
 }
 
 func main() {

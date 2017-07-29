@@ -300,6 +300,17 @@ func (wg *CvcGroupSet) StringWithFreq() string {
 	return out
 }
 
+func (wg *CvcGroupSet) Count() int {
+	count := wg.count
+	if wg.count == wg.grouplimit {
+		count--
+	}
+	return count*wg.persetlimit + wg.list[wg.current].count
+}
+func (wg *CvcGroupSet) MaxCount() int {
+	return wg.grouplimit * wg.persetlimit
+}
+
 func (wg *CvcGroupSet) AddWord(w *CvcWord) (added bool, full bool) {
 	// fmt.Printf("count: %d\n", wg.count)
 	switch {
