@@ -135,8 +135,8 @@ type CvcSetList []*CvcSet
 func NewSet() *CvcSet {
 	var newset *CvcSet = &CvcSet{
 		list:       CvcList{},
-		cMap:       make(map[string]int), // consonent map
-		vMap:       make(map[string]int), // vowel map
+		cMap:       make(map[string]int, 20), // consonent map
+		vMap:       make(map[string]int, 5),  // vowel map
 		count:      0,
 		setlimit:   10,
 		freqcutoff: 0,
