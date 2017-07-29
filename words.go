@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"runtime/pprof"
 	"sort"
 	"strconv"
 	"strings"
@@ -25,6 +27,9 @@ var globalInfo struct {
 	inConsonentFile             string
 	inVowelFile                 string
 	filterFiles                 string
+	timeToRun                   int
+	cpuprofile                  string
+	memprofile                  string
 }
 
 func init() {
@@ -55,12 +60,23 @@ func init() {
 		"input file name for filtered words")
 	flag.StringVar(&globalInfo.outResultFile, "output", "",
 		"output file for generated results (default when not set words_result.txt)")
+
+	flag.IntVar(&globalInfo.timeToRun, "timeToRun", 30,
+		"how much time to run (in seconds), default 30 sec")
+
+	flag.StringVar(&globalInfo.cpuprofile, "cpuprofile", "",
+		"enable cpuprofling and save to file")
+
+	flag.StringVar(&globalInfo.memprofile, "memprofile", "",
+		"enable memprofling and save to file")
+
 }
 
 var consonents, vowels map[string]int
 
 var done = make(chan bool)
 var stop = make(chan bool)
+var finish = make(chan bool)
 var msgs = make(chan string, 100)
 var status = make(chan string, 100)
 
@@ -105,7 +121,8 @@ func main() {
 	fmt.Printf("\nlooking for max %d groups of %d sets (%d per set), "+
 		"with frequency cutoff of %d, %d words above cutoff threshold for each set\n"+
 		"using input word file \"%s\", \ninput vowel file \"%s\", \n"+
-		"input consonent file \"%s\", \noutput file \"%s\", \nfilter file \"%s\"\n",
+		"input consonent file \"%s\", \noutput file \"%s\", \nfilter file \"%s\"\n"+
+		"running for %d seconds\n ",
 		globalInfo.maxGroups,
 		globalInfo.maxSets,
 		globalInfo.maxWords,
@@ -115,7 +132,31 @@ func main() {
 		globalInfo.inVowelFile,
 		globalInfo.inConsonentFile,
 		globalInfo.outResultFile,
-		globalInfo.filterFiles)
+		globalInfo.filterFiles,
+		globalInfo.timeToRun)
+
+	if globalInfo.memprofile != "" {
+		f, err := os.Create(globalInfo.memprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("enable memprofiling, write to '%v'", globalInfo.memprofile)
+		defer func() {
+			pprof.WriteHeapProfile(f)
+			f.Close()
+			return
+		}()
+	}
+
+	if globalInfo.cpuprofile != "" {
+		f, err := os.Create(globalInfo.cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("enable cpuprofiling, write to '%v'", globalInfo.cpuprofile)
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	consonents = getMap(globalInfo.inConsonentFile)
 	vowels = getMap(globalInfo.inVowelFile)
@@ -146,6 +187,8 @@ func main() {
 		}
 	}()
 
+	t0 := time.Now()
+
 	// group collector
 	go func() {
 		count := 1
@@ -154,13 +197,33 @@ func main() {
 				close(stop)
 				return
 			}
-			fmt.Printf("%d\n%s", count, s)
+			if count < globalInfo.maxGroups+1 {
+				fmt.Printf("%d\n%s", count, s)
+			} else if count == globalInfo.maxGroups+1 {
+				fmt.Printf("finishing after %s", time.Now().Sub(t0))
+				finish <- true
+				close(finish)
+			}
 			count++
 		}
 	}()
 	go findGroups(baseGroup, wmap)
 
-	time.Sleep(30 * time.Second)
+	go func() {
+		for {
+			time.Sleep(1 * time.Second)
+			fmt.Printf("%s passed\n", time.Now().Sub(t0))
+		}
+	}()
+
+	dur := time.Duration(globalInfo.timeToRun)
+	select {
+	case <-finish:
+		fmt.Printf("finished after %s\n", time.Now().Sub(t0))
+	case <-time.After(dur * time.Second):
+		fmt.Printf("stopped after %s\n", time.Now().Sub(t0))
+	}
+
 	close(done)
 	msgs <- "end messages"
 	status <- "end messages"
