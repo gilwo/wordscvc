@@ -79,6 +79,7 @@ var stop = make(chan bool)
 var finish = make(chan bool)
 var msgs = make(chan string, 100)
 var status = make(chan string, 100)
+var count int = 0
 
 func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 	defer func() {
@@ -90,6 +91,9 @@ func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 	exit := false
 	zmap := *wordmap.GetCm()
 	for k := range zmap {
+		if exit || count == globalInfo.maxGroups {
+			return
+		}
 		select {
 		case <-done:
 			exit = true
@@ -97,13 +101,12 @@ func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 			if added, full := group.AddWord(k); full == true {
 				msg := fmt.Sprintf("group completed\n%s", group.StringWithFreq())
 				msgs <- msg
+				count++
+
 			} else if added {
 				wordmap.DelWord(k)
 				go findGroups(group.CopyCvcGroupSet(), wordmap.CopyCvcWordMap())
 			}
-		}
-		if exit {
-			return
 		}
 	}
 	if float64(group.Count()/group.MaxCount()) > float64(0.5) {
@@ -140,7 +143,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("enable memprofiling, write to '%v'", globalInfo.memprofile)
+		fmt.Printf("enable memprofiling, write to '%v'\n", globalInfo.memprofile)
 		defer func() {
 			pprof.WriteHeapProfile(f)
 			f.Close()
@@ -153,7 +156,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("enable cpuprofiling, write to '%v'", globalInfo.cpuprofile)
+		fmt.Printf("enable cpuprofiling, write to '%v'\n", globalInfo.cpuprofile)
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
@@ -166,11 +169,15 @@ func main() {
 	wmap := getWordsMap(globalInfo.inWordsFile)
 	fmt.Printf("map size: %d\ncontent:\n%s\n", wmap.Size(), wmap)
 
+	// set the base group accoring to the required settings
 	baseGroup := cvc.NewGroupSetLimitFreq(
 		globalInfo.maxSets,
 		globalInfo.maxWords,
 		globalInfo.freqCutoff,
 		globalInfo.freqWordsPerLineAboveCutoff)
+
+	// start time measuring
+	t0 := time.Now()
 
 	// status collector
 	go func() {
@@ -187,8 +194,6 @@ func main() {
 		}
 	}()
 
-	t0 := time.Now()
-
 	// group collector
 	go func() {
 		count := 1
@@ -199,10 +204,12 @@ func main() {
 			}
 			if count < globalInfo.maxGroups+1 {
 				fmt.Printf("%d\n%s", count, s)
-			} else if count == globalInfo.maxGroups+1 {
+			} else if count >= globalInfo.maxGroups+1 {
 				fmt.Printf("finishing after %s", time.Now().Sub(t0))
 				finish <- true
 				close(finish)
+				close(stop)
+				return
 			}
 			count++
 		}
