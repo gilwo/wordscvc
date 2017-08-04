@@ -11,6 +11,10 @@ import (
 //	dump()
 //}
 
+// ***************************************
+//           CvcWord
+// ***************************************
+
 // CvcWord - consonent/vowel/consonent actword bundle strucrt
 //  contain frequency for this word in the usage of the word
 type CvcWord struct {
@@ -44,6 +48,10 @@ func (w *CvcWord) DumpString() string {
 func (w *CvcWord) String() string {
 	return w.actword
 }
+
+// ***************************************
+//           CvcList
+// ***************************************
 
 // CvcList ...
 type CvcList []*CvcWord
@@ -118,6 +126,10 @@ func (wlist *CvcList) CopyList() *CvcList {
 // 	cmap := make
 //
 // }
+
+// ***************************************
+//           CvcList
+// ***************************************
 
 // CvcSet
 type CvcSet struct {

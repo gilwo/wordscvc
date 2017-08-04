@@ -69,6 +69,8 @@ func TestCVCListAsString(t *testing.T) {
 	w2 := cws[1]
 	w3 := cws[2]
 
+	// fmt.Printf("%v: %p\n", w1, w1)
+
 	expected := words[0] + " " + words[1] + " " + words[2]
 	wl := &CvcList{}
 
@@ -79,6 +81,17 @@ func TestCVCListAsString(t *testing.T) {
 		t.Errorf("list is not empty")
 	}
 	*wl = append(*wl, w1, w2, w3)
+	// fmt.Printf("%v: %p\n", (*wl)[0], *(&(*wl)[0]))
+	wl_ptr_w1 := *(&(*wl)[0])
+	if wl_ptr_w1 != w1 {
+		t.Errorf("test data pointer for word %s (0x%p) is different "+
+			"from list word %s pointer (0x%p)", w1, w1, (*wl)[0], wl_ptr_w1)
+	}
+
+	// manual chekcing pointers are the same
+	// wl2 := &CvcList{}
+	// *wl2 = append(*wl2, (*wl)[0])
+	// fmt.Printf("%v: %p\n", (*wl2)[0], *(&(*wl2)[0]))
 
 	if wl.asString() != expected {
 		msg := fmt.Sprintf("CVCList as string malformed: "+
@@ -243,8 +256,8 @@ func TestCvcSet(t *testing.T) {
 	set.AddWord(w5)
 	set.AddWord(w6)
 	if added, _ := set.AddWord(wbad1); added == true {
-		t.Errorf(`cvcword %s, should no be joined set already have 2
-			vowels %s`, wbad1, set)
+		t.Errorf("cvcword %s, should no be joined set already have 2 "+
+			"vowels %s", wbad1, set)
 	}
 	set.AddWord(w7)
 	set.AddWord(w8)
