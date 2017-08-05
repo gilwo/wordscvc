@@ -352,17 +352,21 @@ func (wg *CvcGroupSet) StringWithFreq() string {
 }
 
 // Count : TODO: fill me
-func (wg *CvcGroupSet) Count() int {
+func (wg *CvcGroupSet) Count() float64 {
 	count := wg.count
+	current_list_count := 0
 	if wg.count == wg.grouplimit {
 		count--
 	}
-	return count*wg.persetlimit + wg.list[wg.current].count
+	if len(wg.list) > 0 {
+		current_list_count = wg.list[wg.current].count
+	}
+	return float64(count*wg.persetlimit + current_list_count)
 }
 
 // MaxCount : TODO: fill me
-func (wg *CvcGroupSet) MaxCount() int {
-	return wg.grouplimit * wg.persetlimit
+func (wg *CvcGroupSet) MaxCount() float64 {
+	return float64(wg.grouplimit * wg.persetlimit)
 }
 
 // AddWord : TODO: fill me

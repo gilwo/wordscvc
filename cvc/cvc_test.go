@@ -396,7 +396,7 @@ func TestCvcGroupFreq(t *testing.T) {
 	}
 
 	if group.Count() != group.MaxCount() {
-		t.Errorf("group count %d is not fit with group max count %d",
+		t.Errorf("group count %f is not fit with group max count %f",
 			group.Count(), group.MaxCount())
 	}
 }
