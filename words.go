@@ -17,8 +17,8 @@ import (
 )
 
 var globalInfo struct {
+	// flagable vars
 	maxGroups                   int
-	countGroups                 int
 	freqCutoff                  int
 	freqWordsPerLineAboveCutoff int
 	vowelLimit                  int // 2
@@ -32,6 +32,10 @@ var globalInfo struct {
 	timeToRun                   int
 	cpuprofile                  string
 	memprofile                  string
+
+	// internal vars
+	countGroups  int
+	finishSignal bool
 }
 
 func init() {
@@ -76,54 +80,52 @@ func init() {
 
 var consonents, vowels map[string]int
 
-var done = make(chan bool)
-var stop = make(chan bool)
-var finish = make(chan bool)
+var waitForWorkers = make(chan bool)
+var collectingDone = make(chan struct{})
 var msgs = make(chan string, 100)
-var started = make(chan struct{}, 100)
-var stopped = make(chan struct{}, 100)
-var status = make(chan string, 100)
+var startedWorkers = make(chan struct{}, 100)
+var stoppedWorkers = make(chan struct{}, 100)
 
 func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
-	// defer func() {
-	// 	recover()
-	// 	// z := recover()
-	// 	// fmt.Println("recovered from %s", z)
-	// 	return
-	// }()
-	if float64(group.Count()/group.MaxCount()) > float64(0.5) {
-		// status <- fmt.Sprintf("reached depth %d of %d", group.Count(), group.MaxCount())
-		fmt.Printf("reached depth %d of %d\n", group.Count(), group.MaxCount())
-	}
+	defer func() {
+		if fail := recover(); fail != nil {
+			// fmt.Printf("recovered from %s\n", fail)
+		}
+		stoppedWorkers <- struct{}{}
+		group = nil
+		wordmap = nil
+		// runtime.GC()
+		return
+	}()
+
 	zmap := *wordmap.GetCm()
-	if group.Checkifavailable(wordmap) {
-		goto Exit
+	startedWorkers <- struct{}{}
+	if group.Count()/group.MaxCount() > float64(0.9) {
+		s := fmt.Sprintf("status: reached depth %d of %d\n",
+			int(group.Count()), int(group.MaxCount()))
+		msgs <- s
 	}
-	started <- struct{}{}
+
 	for k := range zmap {
 
-		if globalInfo.need_to_finish {
-			// fmt.Println("need_to_finish issued, exiting")
+		if globalInfo.finishSignal {
+			// fmt.Println("finishSignal issued, exiting")
+			break
+		}
+		if globalInfo.countGroups >= globalInfo.maxGroups {
+			// fmt.Printf("groups count %d reached max groups %d", globalInfo.countGroups, globalInfo.maxGroups)
 			break
 		}
 		if added, full := group.AddWord(k); full == true {
 			msg := fmt.Sprintf("group completed\n%s", group.StringWithFreq())
-			fmt.Println(msg)
+			// fmt.Println(msg)
 			msgs <- msg
 			break
 		} else if added {
 			wordmap.DelWord(k)
 			go findGroups(group.CopyCvcGroupSet(), wordmap.CopyCvcWordMap())
 		}
-		if globalInfo.countGroups >= globalInfo.maxGroups {
-			break
-		}
 	}
-	stopped <- struct{}{}
-Exit:
-	group = nil
-	wordmap = nil
-	runtime.GC()
 }
 
 func main() {
@@ -136,7 +138,7 @@ func main() {
 		"with frequency cutoff of %d, %d words above cutoff threshold for each set\n"+
 		"using input word file \"%s\", \ninput vowel file \"%s\", \n"+
 		"input consonent file \"%s\", \noutput file \"%s\", \nfilter file \"%s\"\n"+
-		"running for %d seconds\n ",
+		"running for %d seconds\n",
 		globalInfo.maxGroups,
 		globalInfo.maxSets,
 		globalInfo.maxWords,
@@ -190,62 +192,78 @@ func main() {
 	// start time measuring
 	t0 := time.Now()
 
-	// status collector
+	// wait for all goroutines to finish
 	go func() {
+		count := 0
+		i := 0
 		for {
-			var s string
+			// fmt.Println("going to wait")
 			select {
-			case s := <-status:
-				fmt.Println(s)
-			default:
-			}
-			if s == "end messages" {
-				break
+			case <-startedWorkers:
+				// println("startedWorkers")
+				count++
+				i = 0
+			case <-stoppedWorkers:
+				// println("stoppedWorkers")
+				count--
+				i = 0
+			case <-time.After(1 * time.Second):
+				if count > 0 {
+					fmt.Printf("there are still %d active go routines\n", count)
+					// fmt.Printf("count = %d and i = %d", count, i)
+				} else {
+					fmt.Printf("count = 0 and i = %d\n", i)
+					i++
+					if i == 3 {
+						waitForWorkers <- true
+					}
+				}
 			}
 		}
 	}()
 
-	// group collector
-	go func() {
-		count := 1
-		for s := range msgs {
-			if s == "end messages" {
-				close(stop)
-				return
-			}
-			if count < globalInfo.maxGroups+1 {
-				fmt.Printf("%d\n%s", count, s)
-			} else if count >= globalInfo.maxGroups+1 {
-				fmt.Printf("finishing after %s", time.Now().Sub(t0))
-				finish <- true
-				close(finish)
-				close(stop)
-				return
-			}
-			count++
-		}
-	}()
-	go findGroups(baseGroup, wmap)
-
+	// msg collector
 	go func() {
 		for {
-			time.Sleep(1 * time.Second)
-			fmt.Printf("%s passed\n", time.Now().Sub(t0))
+			select {
+			case s := <-msgs:
+				if strings.HasPrefix(s, "status:") {
+					fmt.Printf("%s", s)
+				} else {
+					globalInfo.countGroups++
+					fmt.Printf("%d\n%s", globalInfo.countGroups, s)
+					if globalInfo.countGroups == globalInfo.maxGroups {
+						close(msgs)
+						close(collectingDone)
+						return
+					}
+				}
+			default:
+				time.Sleep(1 * time.Second)
+				fmt.Printf("%s passed\n", time.Now().Sub(t0))
+				if globalInfo.finishSignal {
+					// fmt.Println("finishSignal issued, exiting")
+					close(msgs)
+					return
+				}
+			}
 		}
 	}()
+
+	go findGroups(baseGroup, wmap)
 
 	dur := time.Duration(globalInfo.timeToRun)
 	select {
-	case <-finish:
-		fmt.Printf("finished after %s\n", time.Now().Sub(t0))
+	case <-collectingDone:
+		fmt.Printf("required results collected after %s\n", time.Now().Sub(t0))
 	case <-time.After(dur * time.Second):
 		fmt.Printf("stopped after %s\n", time.Now().Sub(t0))
 	}
+	globalInfo.finishSignal = true
 
-	close(done)
-	msgs <- "end messages"
-	status <- "end messages"
-	<-stop
+	fmt.Println("waiting for waitForWorkers")
+	<-waitForWorkers
+	fmt.Println("exiting...")
 
 }
 
