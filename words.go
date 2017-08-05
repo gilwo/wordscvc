@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"runtime/pprof"
 	"sort"
 	"strconv"
@@ -17,6 +18,7 @@ import (
 
 var globalInfo struct {
 	maxGroups                   int
+	countGroups                 int
 	freqCutoff                  int
 	freqWordsPerLineAboveCutoff int
 	vowelLimit                  int // 2
@@ -78,41 +80,50 @@ var done = make(chan bool)
 var stop = make(chan bool)
 var finish = make(chan bool)
 var msgs = make(chan string, 100)
+var started = make(chan struct{}, 100)
+var stopped = make(chan struct{}, 100)
 var status = make(chan string, 100)
-var count int = 0
 
 func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
-	defer func() {
-		recover()
-		// z := recover()
-		// fmt.Println("recovered from %s", z)
-		return
-	}()
-	exit := false
-	zmap := *wordmap.GetCm()
-	for k := range zmap {
-		if exit || count == globalInfo.maxGroups {
-			return
-		}
-		select {
-		case <-done:
-			exit = true
-		default:
-			if added, full := group.AddWord(k); full == true {
-				msg := fmt.Sprintf("group completed\n%s", group.StringWithFreq())
-				msgs <- msg
-				count++
-
-			} else if added {
-				wordmap.DelWord(k)
-				go findGroups(group.CopyCvcGroupSet(), wordmap.CopyCvcWordMap())
-			}
-		}
-	}
+	// defer func() {
+	// 	recover()
+	// 	// z := recover()
+	// 	// fmt.Println("recovered from %s", z)
+	// 	return
+	// }()
 	if float64(group.Count()/group.MaxCount()) > float64(0.5) {
 		// status <- fmt.Sprintf("reached depth %d of %d", group.Count(), group.MaxCount())
 		fmt.Printf("reached depth %d of %d\n", group.Count(), group.MaxCount())
 	}
+	zmap := *wordmap.GetCm()
+	if group.Checkifavailable(wordmap) {
+		goto Exit
+	}
+	started <- struct{}{}
+	for k := range zmap {
+
+		if globalInfo.need_to_finish {
+			// fmt.Println("need_to_finish issued, exiting")
+			break
+		}
+		if added, full := group.AddWord(k); full == true {
+			msg := fmt.Sprintf("group completed\n%s", group.StringWithFreq())
+			fmt.Println(msg)
+			msgs <- msg
+			break
+		} else if added {
+			wordmap.DelWord(k)
+			go findGroups(group.CopyCvcGroupSet(), wordmap.CopyCvcWordMap())
+		}
+		if globalInfo.countGroups >= globalInfo.maxGroups {
+			break
+		}
+	}
+	stopped <- struct{}{}
+Exit:
+	group = nil
+	wordmap = nil
+	runtime.GC()
 }
 
 func main() {
@@ -163,8 +174,8 @@ func main() {
 
 	consonents = getMap(globalInfo.inConsonentFile)
 	vowels = getMap(globalInfo.inVowelFile)
-	fmt.Printf("consonents: \n%s\n", getOrderedMapString(consonents))
-	fmt.Printf("vowels: \n%s\n", getOrderedMapString(vowels))
+	fmt.Printf("consonents: %d\n%s\n", len(consonents), getOrderedMapString(consonents))
+	fmt.Printf("vowels: %d\n%s\n", len(vowels), getOrderedMapString(vowels))
 
 	wmap := getWordsMap(globalInfo.inWordsFile)
 	fmt.Printf("map size: %d\ncontent:\n%s\n", wmap.Size(), wmap)
