@@ -148,7 +148,7 @@ type CvcSetList []*CvcSet
 
 // NewSet : return new set with limit of 10 elements cvcwords
 func NewSet() *CvcSet {
-	var newset *CvcSet = &CvcSet{
+	var newset = &CvcSet{
 		list:       CvcList{},
 		cMap:       make([]cbundle, 20),
 		vMap:       make([]vbundle, 5),
@@ -312,7 +312,7 @@ type CvcGroupSet struct {
 
 // NewGroupSetLimit : TODO: fill me
 func NewGroupSetLimit(grouplimit, setlimit int) *CvcGroupSet {
-	var newgroup *CvcGroupSet = &CvcGroupSet{
+	var newgroup = &CvcGroupSet{
 		list:        CvcSetList{},
 		count:       0,
 		current:     0,
@@ -333,7 +333,7 @@ func NewGroupSetLimitFreq(grouplimit, setlimit, fcutoff, fabove int) *CvcGroupSe
 }
 
 func (wg *CvcGroupSet) String() string {
-	var out string = string("\n")
+	var out = string("\n")
 	for _, set := range wg.list {
 		// fmt.Printf("testing %d\n", i)
 		out += fmt.Sprintf("\t%s\n", set.String())
@@ -343,7 +343,7 @@ func (wg *CvcGroupSet) String() string {
 
 // StringWithFreq : TODO: fill me
 func (wg *CvcGroupSet) StringWithFreq() string {
-	var out string = string("\n")
+	var out = string("\n")
 	for i, set := range wg.list {
 		// fmt.Printf("testing %d\n", i)
 		out += fmt.Sprintf("\t%d:%s\n", i+1, set.StringWithFreq())
@@ -378,7 +378,7 @@ func (wg *CvcGroupSet) AddWord(w *CvcWord) (added bool, full bool) {
 		// wg.list = append(wg.list, NewSetLimit(wg.persetlimit))
 		wg.list = append(wg.list,
 			NewSetLimitFreq(wg.persetlimit, wg.freqcutoff, wg.freqabove))
-		wg.count += 1
+		wg.count++
 	}
 	// fmt.Printf("count: %d\n", wg.count)
 	wg.current = wg.count - 1 // count is one bases, current is zero based
@@ -420,7 +420,7 @@ func (wmap *CvcWordMap) GetCm() *map[*CvcWord]int {
 
 // NewCvcWordMap : TODO: fill me
 func NewCvcWordMap() *CvcWordMap {
-	var newmap *CvcWordMap = &CvcWordMap{
+	var newmap = &CvcWordMap{
 		cm: make(map[*CvcWord]int),
 		// TODO: check if we need to initialize the key var ?
 		// keys: make([]*CvcWord, 1),
