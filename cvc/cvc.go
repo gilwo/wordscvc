@@ -150,10 +150,10 @@ type CvcSetList []*CvcSet
 func NewSet() *CvcSet {
 	var newset = &CvcSet{
 		list:       CvcList{},
-		cMap:       make([]cbundle, 20),
-		vMap:       make([]vbundle, 5),
+		cMap:       make([]cbundle, 20), // TODO: fix me, dont be hardcoded
+		vMap:       make([]vbundle, 5),  // TODO: fix me, dont br hardcoded
 		count:      0,
-		setlimit:   10,
+		setlimit:   10, // TODO: fix me, dont br hardcoded
 		freqcutoff: 0,
 		freqabove:  0,
 	}
