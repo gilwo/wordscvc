@@ -131,11 +131,20 @@ func (wlist *CvcList) CopyList() *CvcList {
 //           CvcList
 // ***************************************
 
+type cbundle struct {
+	consonent string
+	exist     bool
+}
+type vbundle struct {
+	vowel string
+	count int
+}
+
 // CvcSet
 type CvcSet struct {
 	list       CvcList
-	cMap       map[string]int
-	vMap       map[string]int
+	cMap       []cbundle
+	vMap       []vbundle
 	count      int
 	setlimit   int
 	freqcutoff int
@@ -147,8 +156,8 @@ type CvcSetList []*CvcSet
 func NewSet() *CvcSet {
 	var newset *CvcSet = &CvcSet{
 		list:       CvcList{},
-		cMap:       make(map[string]int, 20), // consonent map
-		vMap:       make(map[string]int, 5),  // vowel map
+		cMap:       make([]cbundle, 20),
+		vMap:       make([]vbundle, 5),
 		count:      0,
 		setlimit:   10,
 		freqcutoff: 0,
@@ -214,32 +223,59 @@ func (wset *CvcSet) AddWord(w *CvcWord) (added bool, full bool) {
 	if wset.count == wset.setlimit {
 		return false, true
 	}
-	if _, c1_already := wset.cMap[w.c1]; c1_already {
-		// print("%s already in set", w.c1)
-		return false, false
-	}
-
-	if _, c2_already := wset.cMap[w.c2]; c2_already {
-		// print("%s already in set", w.c2)
-		return false, false
-	}
-
-	if v_count, v_exist := wset.vMap[w.v]; v_exist {
-		if v_count > 1 {
-			return false, false
+	// check consonent validity : do not appear already in the list of cvc words
+	var fc int
+	for i, e := range wset.cMap {
+		fc = i
+		if e.consonent == "" {
+			break
 		}
-	} else {
-		wset.vMap[w.v] = 0
+		if w.c1 == e.consonent {
+			if e.exist {
+				return false, false
+			}
+		}
+		if w.c2 == e.consonent {
+			if e.exist {
+				return false, false
+			}
+		}
+	}
+
+	// check vowel validity : do not appear more then twice
+	var fv int
+	for i, e := range wset.vMap {
+		fv = i
+		if e.vowel == "" {
+			break
+		}
+		if w.v == e.vowel {
+			if e.count > 1 { // if its already 2 we dont want to add another one
+				return false, false
+			}
+			fv = i
+			break
+		}
 	}
 
 	if !wset.freqCheckOk(w) {
 		return false, false
 	}
 
-	wset.cMap[w.c1] = 1
-	wset.cMap[w.c2] = 1
-	wset.vMap[w.v] += 1
-	wset.count += 1
+	// update the counters for the consonents
+	wset.cMap[fc] = cbundle{w.c1, true}
+	wset.cMap[fc+1] = cbundle{w.c2, true}
+
+	// update the counter for the vowel
+	if wset.vMap[fv].vowel == "" {
+		wset.vMap[fv] = vbundle{w.v, 1}
+	} else {
+		wset.vMap[fv].count++
+	}
+
+	// update the cvc list counter
+	wset.count++
+	// and add to the list
 	wset.list = append(wset.list, w)
 
 	if wset.count == wset.setlimit {
