@@ -328,7 +328,7 @@ func TestCvcGroupSet(t *testing.T) {
 			testString)
 	}
 
-	testStringWithFreq := fmt.Sprintf("\n\t[%s:%d, %s:%d]\n\t[%s:%d, %s:%d]\n",
+	testStringWithFreq := fmt.Sprintf("\n\t1:[%s:%d, %s:%d]\n\t2:[%s:%d, %s:%d]\n",
 		cws[0], cws[0].freq,
 		cws[1], cws[1].freq,
 		cws[2], cws[2].freq,

@@ -341,9 +341,9 @@ func (wg *CvcGroupSet) String() string {
 
 func (wg *CvcGroupSet) StringWithFreq() string {
 	var out string = string("\n")
-	for _, set := range wg.list {
+	for i, set := range wg.list {
 		// fmt.Printf("testing %d\n", i)
-		out += fmt.Sprintf("\t%s\n", set.StringWithFreq())
+		out += fmt.Sprintf("\t%d:%s\n", i+1, set.StringWithFreq())
 	}
 	return out
 }
