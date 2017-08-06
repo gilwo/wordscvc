@@ -34,8 +34,11 @@ var globalInfo struct {
 	memprofile                  string
 
 	// internal vars
-	countGroups  int
-	finishSignal bool
+	countGroups    int
+	finishSignal   bool
+	debugEnabled   bool
+	maxWorkers     int
+	currentWorkers int
 }
 
 func init() {
@@ -202,10 +205,15 @@ func main() {
 			case <-startedWorkers:
 				// println("startedWorkers")
 				count++
+				if count > globalInfo.maxWorkers {
+					globalInfo.maxWorkers = count
+				}
+				globalInfo.currentWorkers = count
 				i = 0
 			case <-stoppedWorkers:
 				// println("stoppedWorkers")
 				count--
+				globalInfo.currentWorkers = count
 				i = 0
 			case <-time.After(1 * time.Second):
 				if count > 0 {
@@ -245,6 +253,10 @@ func main() {
 					// fmt.Println("finishSignal issued, exiting")
 					close(msgs)
 					return
+				}
+				if globalInfo.debugEnabled {
+					fmt.Printf("current workers %d, max workers %d\n",
+						globalInfo.currentWorkers, globalInfo.maxWorkers)
 				}
 			}
 		}
