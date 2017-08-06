@@ -395,9 +395,9 @@ func TestCvcGroupFreq(t *testing.T) {
 		t.Errorf("group '%s' is full", group.StringWithFreq())
 	}
 
-	if group.Count() != group.MaxCount() {
+	if group.CurrentSize() != group.MaxSize() {
 		t.Errorf("group count %f is not fit with group max count %f",
-			group.Count(), group.MaxCount())
+			group.CurrentSize(), group.MaxSize())
 	}
 }
 
