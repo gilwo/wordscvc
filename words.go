@@ -120,7 +120,10 @@ func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 			break
 		}
 		if added, full := group.AddWord(k); full == true {
-			msg := fmt.Sprintf("group completed\n%s", group.StringWithFreq())
+			msg := fmt.Sprintf("group completed\n%s\n", group.StringWithFreq())
+			if globalInfo.debugEnabled {
+				msg += group.DumpGroup() + "\n"
+			}
 			// fmt.Println(msg)
 			msgs <- msg
 			break
