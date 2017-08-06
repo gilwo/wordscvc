@@ -146,6 +146,24 @@ type CvcSet struct {
 // CvcSetList : TODO: fill me
 type CvcSetList []*CvcSet
 
+// DumpSet : TODO: fill me
+func (wset *CvcSet) DumpSet() string {
+	return fmt.Sprintf("list:\n%s\n"+
+		"consonents:\n%v\n"+
+		"vowels:\n%v\n"+
+		"count:%d\n"+
+		"setlimit:%d\n"+
+		"freqcutoff:%d\n"+
+		"freqabove:%d\n",
+		wset.list.asStringWithFreq(),
+		wset.cMap,
+		wset.vMap,
+		wset.count,
+		wset.setlimit,
+		wset.freqcutoff,
+		wset.freqabove)
+}
+
 // NewSet : return new set with limit of 10 elements cvcwords
 func NewSet() *CvcSet {
 	var newset = &CvcSet{
@@ -308,6 +326,29 @@ type CvcGroupSet struct {
 	persetlimit int
 	freqcutoff  int
 	freqabove   int
+}
+
+// DumpGroup : TODO: fill me
+func (wg *CvcGroupSet) DumpGroup() string {
+	var out = string("\n")
+	for i, set := range wg.list {
+		// fmt.Printf("testing %d\n", i)
+		out += fmt.Sprintf("\t%d:%s\n", i+1, set.DumpSet())
+	}
+	return fmt.Sprintf("list:\n%s\n"+
+		"count:%d\n"+
+		"current:%d\n"+
+		"grouplimit:%d\n"+
+		"persetlimit:%d\n"+
+		"freqcutoff:%d\n"+
+		"freqabove:%d\n",
+		out,
+		wg.count,
+		wg.current,
+		wg.grouplimit,
+		wg.persetlimit,
+		wg.freqcutoff,
+		wg.freqabove)
 }
 
 // NewGroupSetLimit : TODO: fill me
