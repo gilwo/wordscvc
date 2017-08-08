@@ -32,11 +32,11 @@ var globalInfo struct {
 	timeToRun                   int
 	cpuprofile                  string
 	memprofile                  string
+	debugEnabled   bool
 
 	// internal vars
 	countGroups    int
 	finishSignal   bool
-	debugEnabled   bool
 	maxWorkers     int
 	currentWorkers int
 }
@@ -79,6 +79,8 @@ func init() {
 	flag.StringVar(&globalInfo.memprofile, "memprofile", "",
 		"enable memprofling and save to file")
 
+	flag.BoolVar(&globalInfo.debugEnabled, "debug", false,
+	"enable debugging information")
 }
 
 var consonents, vowels map[string]int
