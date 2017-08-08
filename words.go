@@ -290,7 +290,7 @@ func main() {
 
 	fmt.Println("waiting for waitForWorkers")
 	<-waitForWorkers
-	fmt.Println("exiting...")
+	fmt.Printf("exiting... after %s\n", time.Now().Sub(t0))
 
 }
 
