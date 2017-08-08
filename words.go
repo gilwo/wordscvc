@@ -90,6 +90,7 @@ var collectingDone = make(chan struct{})
 var msgs = make(chan string, 100)
 var startedWorkers = make(chan struct{}, 100)
 var stoppedWorkers = make(chan struct{}, 100)
+var maxSize int = 0
 
 func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 	defer func() {
@@ -105,10 +106,13 @@ func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 
 	zmap := *wordmap.GetCm()
 	startedWorkers <- struct{}{}
-	if group.CurrentSize()/group.MaxSize() > float64(0.9) {
+	if float64(group.CurrentSize())/float64(group.MaxSize()) > float64(0.9) {
 		s := fmt.Sprintf("status: reached depth %d of %d\n",
 			int(group.CurrentSize()), int(group.MaxSize()))
 		msgs <- s
+	}
+	if group.CurrentSize() > maxSize {
+		msgs <- "depth: " + strconv.Itoa(group.CurrentSize())
 	}
 
 	for k := range zmap {
@@ -240,7 +244,13 @@ func main() {
 		for {
 			select {
 			case s := <-msgs:
-				if strings.HasPrefix(s, "status:") {
+				if strings.HasPrefix(s, "depth: ") {
+					size, _ := strconv.Atoi(s[len("depth: "):])
+					if size > maxSize {
+						maxSize = size
+						fmt.Printf("max depth : %d\n", maxSize)
+					}
+				} else if strings.HasPrefix(s, "status:") {
 					fmt.Printf("%s", s)
 				} else {
 					globalInfo.countGroups++
