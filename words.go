@@ -104,8 +104,8 @@ func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 		return
 	}()
 
-	zmap := *wordmap.GetCm()
 	startedWorkers <- struct{}{}
+	zmap := *wordmap.GetCm()
 	if float64(group.CurrentSize())/float64(group.MaxSize()) > float64(0.9) {
 		s := fmt.Sprintf("status: reached depth %d of %d\n",
 			int(group.CurrentSize()), int(group.MaxSize()))
