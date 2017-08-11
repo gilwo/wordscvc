@@ -452,6 +452,11 @@ func (wg *CvcGroupSet) CopyCvcGroupSet() *CvcGroupSet {
 	return newgroup
 }
 
+// Checkifavailable : TODO: fill me
+func (wg *CvcGroupSet) Checkifavailable(wmap *CvcWordMap) bool {
+	return true
+}
+
 // CvcWordMap : TODO: fill me
 type CvcWordMap struct {
 	cm   map[*CvcWord]int
