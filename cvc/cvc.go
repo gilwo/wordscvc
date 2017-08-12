@@ -454,6 +454,12 @@ func (wg *CvcGroupSet) CopyCvcGroupSet() *CvcGroupSet {
 
 // Checkifavailable : TODO: fill me
 func (wg *CvcGroupSet) Checkifavailable(wmap *CvcWordMap) bool {
+	if wg.MaxSize()-wg.CurrentSize() > wmap.count {
+		fmt.Printf("missing : %d, available %d\n", int(wg.MaxSize())-int(wg.CurrentSize()),
+			wmap.count)
+		return false
+	}
+
 	return true
 }
 
@@ -461,6 +467,7 @@ func (wg *CvcGroupSet) Checkifavailable(wmap *CvcWordMap) bool {
 type CvcWordMap struct {
 	cm   map[*CvcWord]int
 	keys CvcList
+	count int
 }
 
 // GetCm : TODO: fill me
@@ -486,6 +493,7 @@ func (wmap *CvcWordMap) CopyCvcWordMap() *CvcWordMap {
 	}
 	newmap.keys = make(CvcList, len(wmap.keys))
 	copy(newmap.keys, wmap.keys)
+	newmap.count = wmap.count
 
 	// the following line create error in the TestCvcMap
 	// newmap.keys = append(CvcList{}, wmap.keys[0])
@@ -500,6 +508,7 @@ func (wmap *CvcWordMap) AddWord(w *CvcWord) bool {
 	}
 	wmap.keys = append(wmap.keys, w)
 	wmap.cm[w] = 1
+	wmap.count++
 	return true
 }
 
@@ -515,6 +524,7 @@ func (wmap *CvcWordMap) DelWord(w *CvcWord) bool {
 		}
 	}
 	delete(wmap.cm, w)
+	wmap.count--
 	return true
 }
 
