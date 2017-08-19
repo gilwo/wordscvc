@@ -22,13 +22,13 @@ type CvcWord struct {
 
 // NewCVCWord creating new CVC Word from given elements
 func NewCVCWord(c1 string, v string, c2 string, freq int) *CvcWord {
-	var w CvcWord
+	w := new(CvcWord)
 	w.c1 = c1
 	w.v = v
 	w.c2 = c2
 	w.freq = freq
 	w.actword = c1 + v + c2
-	return &w
+	return w
 }
 
 func (w *CvcWord) dumpString() string {
@@ -166,15 +166,10 @@ func (wset *CvcSet) DumpSet() string {
 
 // NewSet : return new set with limit of 10 elements cvcwords
 func NewSet() *CvcSet {
-	var newset = &CvcSet{
-		list:       CvcList{},
-		cMap:       make([]cbundle, 20), // TODO: fix me, dont be hardcoded
-		vMap:       make([]vbundle, 5),  // TODO: fix me, dont br hardcoded
-		count:      0,
-		setlimit:   10, // TODO: fix me, dont br hardcoded
-		freqcutoff: 0,
-		freqabove:  0,
-	}
+	newset := new(CvcSet)
+	newset.cMap = make([]cbundle, 20)
+	newset.vMap = make([]vbundle, 5)
+	newset.setlimit = 10
 	return newset
 }
 
@@ -304,12 +299,8 @@ func (wset *CvcSet) AddWord(w *CvcWord) (added bool, full bool) {
 func (wset *CvcSet) CopySet() *CvcSet {
 	newset := NewSetLimitFreq(
 		wset.setlimit, wset.freqcutoff, wset.freqabove)
-	for k, v := range wset.cMap {
-		newset.cMap[k] = v
-	}
-	for k, v := range wset.vMap {
-		newset.vMap[k] = v
-	}
+	copy(newset.cMap, wset.cMap)
+	copy(newset.vMap, wset.vMap)
 	for _, e := range wset.list {
 		newset.list = append(newset.list, e)
 	}
@@ -353,15 +344,10 @@ func (wg *CvcGroupSet) DumpGroup() string {
 
 // NewGroupSetLimit : TODO: fill me
 func NewGroupSetLimit(grouplimit, setlimit int) *CvcGroupSet {
-	var newgroup = &CvcGroupSet{
-		list:        CvcSetList{},
-		count:       0,
-		current:     0,
-		grouplimit:  grouplimit,
-		persetlimit: setlimit,
-		freqcutoff:  0,
-		freqabove:   0,
-	}
+	newgroup := new(CvcGroupSet)
+	newgroup.list = CvcSetList{}
+	newgroup.grouplimit = grouplimit
+	newgroup.persetlimit = setlimit
 	return newgroup
 }
 
