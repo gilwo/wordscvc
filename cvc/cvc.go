@@ -10,7 +10,7 @@ import (
 //           CvcWord
 // ***************************************
 
-// CvcWord - consonent/vowel/consonent actword bundle strucrt
+// CvcWord - consonant/vowel/consonant actword bundle strucrt
 //  contain frequency for this word in the usage of the word
 type CvcWord struct {
 	c1      string
@@ -124,7 +124,7 @@ func (wlist *CvcList) CopyList() *CvcList {
 // ***************************************
 
 type cbundle struct {
-	consonent string
+	consonant string
 	exist     bool
 }
 type vbundle struct {
@@ -149,7 +149,7 @@ type CvcSetList []*CvcSet
 // DumpSet : TODO: fill me
 func (wset *CvcSet) DumpSet() string {
 	return fmt.Sprintf("list:\n%s\n"+
-		"consonents:\n%v\n"+
+		"consonants:\n%v\n"+
 		"vowels:\n%v\n"+
 		"count:%d\n"+
 		"setlimit:%d\n"+
@@ -239,19 +239,19 @@ func (wset *CvcSet) AddWord(w *CvcWord) (added bool, full bool) {
 	if wset.count == wset.setlimit {
 		return false, true
 	}
-	// check consonent validity : do not appear already in the list of cvc words
+	// check consonant validity : do not appear already in the list of cvc words
 	var fc int
 	for i, e := range wset.cMap {
 		fc = i
-		if e.consonent == "" {
+		if e.consonant == "" {
 			break
 		}
-		if w.c1 == e.consonent {
+		if w.c1 == e.consonant {
 			if e.exist {
 				return false, false
 			}
 		}
-		if w.c2 == e.consonent {
+		if w.c2 == e.consonant {
 			if e.exist {
 				return false, false
 			}
@@ -278,7 +278,7 @@ func (wset *CvcSet) AddWord(w *CvcWord) (added bool, full bool) {
 		return false, false
 	}
 
-	// update the counters for the consonents
+	// update the counters for the consonants
 	wset.cMap[fc] = cbundle{w.c1, true}
 	wset.cMap[fc+1] = cbundle{w.c2, true}
 

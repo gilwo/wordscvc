@@ -44,7 +44,7 @@ var globalInfo struct {
 func init() {
 	const (
 		defaultVowelsFile     = "vowels.txt"
-		defaultConsonentsFile = "consonents.txt"
+		defaultConsonentsFile = "consonants.txt"
 		defaultWordsFile      = "words_list.txt"
 	)
 	flag.IntVar(&globalInfo.maxGroups, "maxres", 20,
@@ -58,7 +58,7 @@ func init() {
 	flag.IntVar(&globalInfo.freqWordsPerLineAboveCutoff, "freqcutoff", 3,
 		"how many words to be above cutoff threshold per line")
 
-	flag.StringVar(&globalInfo.inConsonentFile, "consonents", defaultConsonentsFile,
+	flag.StringVar(&globalInfo.inConsonentFile, "consonants", defaultConsonentsFile,
 		"input file name for words list to use for creating the lines groups results")
 	flag.StringVar(&globalInfo.inVowelFile, "vowels", defaultVowelsFile,
 		"input file name for words list to use for creating the lines groups results")
@@ -83,7 +83,7 @@ func init() {
 	"enable debugging information")
 }
 
-var consonents, vowels map[string]int
+var consonants, vowels map[string]int
 
 var waitForWorkers = make(chan bool)
 var collectingDone = make(chan struct{})
@@ -152,7 +152,7 @@ func main() {
 	fmt.Printf("\nlooking for max %d groups of %d sets (%d per set), "+
 		"with frequency cutoff of %d, %d words above cutoff threshold for each set\n"+
 		"using input word file \"%s\", \ninput vowel file \"%s\", \n"+
-		"input consonent file \"%s\", \noutput file \"%s\", \nfilter file \"%s\"\n"+
+		"input consonant file \"%s\", \noutput file \"%s\", \nfilter file \"%s\"\n"+
 		"running for %d seconds\n",
 		globalInfo.maxGroups,
 		globalInfo.maxSets,
@@ -189,9 +189,9 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	consonents = getMap(globalInfo.inConsonentFile)
+	consonants = getMap(globalInfo.inConsonentFile)
 	vowels = getMap(globalInfo.inVowelFile)
-	fmt.Printf("consonents: %d\n%s\n", len(consonents), getOrderedMapString(consonents))
+	fmt.Printf("consonants: %d\n%s\n", len(consonants), getOrderedMapString(consonants))
 	fmt.Printf("vowels: %d\n%s\n", len(vowels), getOrderedMapString(vowels))
 
 	wmap := getWordsMap(globalInfo.inWordsFile)
@@ -386,7 +386,7 @@ func getWordsFromFile(fname string) []WF {
 	return resList
 }
 
-// var consonents = map[string]int{
+// var consonants = map[string]int{
 // 	"B": 0, "G": 0, "D": 0, "V": 0, "Z": 0, "X": 0, "T": 0,
 // 	"J": 0, "K": 0, "L": 0, "M": 0, "N": 0, "S": 0, "P": 0, "F": 0, "TZ": 0,
 // 	"R": 0, "SH": 0, "Q": 0, "W": 0, "H": 0}

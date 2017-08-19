@@ -8,13 +8,13 @@ the langugae we used for this project was hebrew.
 
 we cover limited set of CVC words as we want to use words which have actual meaning.
 
-the subset for our project contain 20 consonents and 5 vowls
+the subset for our project contain 20 consonant and 5 vowls
 
 the collected around 450 valid words and figure out their usage frequency in the language
 
 the requirement on the set are as follow
 * a set must contain 10 CVC words
-* a consonent cannot appear twice in the same set
+* a consonant cannot appear twice in the same set
 * a vowel must appear twice
 
 the requirement on the group are as follow
