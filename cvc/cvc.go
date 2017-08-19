@@ -166,10 +166,15 @@ func (wset *CvcSet) DumpSet() string {
 
 // NewSet : return new set with limit of 10 elements cvcwords
 func NewSet() *CvcSet {
+	return newSetConfigurable(20, 5, 10)
+}
+
+// newSetConfigurable : return new set with configurable limits
+func newSetConfigurable(consonantCount, vowelCount, setLimit int) *CvcSet {
 	newset := new(CvcSet)
-	newset.cMap = make([]cbundle, 20)
-	newset.vMap = make([]vbundle, 5)
-	newset.setlimit = 10
+	newset.cMap = make([]cbundle, consonantCount)
+	newset.vMap = make([]vbundle, vowelCount)
+	newset.setlimit = setLimit
 	return newset
 }
 
