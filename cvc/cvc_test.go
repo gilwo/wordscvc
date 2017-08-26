@@ -477,7 +477,7 @@ func TestCvcGroupAvailableFreq(t *testing.T) {
 	}
 
 	if group.CurrentSize() > 0 {
-		t.Errorf("group is not empty")
+		t.Errorf("group is not empty: %d\n", group.CurrentSize())
 	}
 
 	for _, w :=range cws[4:9] {
@@ -499,5 +499,22 @@ func TestCvcGroupAvailableFreq(t *testing.T) {
 	if group2.Checkifavailable(newmap) {
 		t.Errorf("group is empty, cutoff: %d, cws: \"%s\"\n", freq_cutoff, newmap)
 	}
+}
 
+func TestDumps(t *testing.T) {
+
+	_, cws := prepareTestData()
+
+	set := NewSetLimit(1)
+
+	set.AddWord(cws[0])
+
+	set.DumpSet()
+
+	group := NewGroupSetLimit(2, 2)
+
+	group.AddWord(cws[0])
+	group.AddWord(cws[1])
+
+	group.DumpGroup()
 }
