@@ -306,9 +306,7 @@ func (wset *CvcSet) CopySet() *CvcSet {
 		wset.setlimit, wset.freqcutoff, wset.freqabove)
 	copy(newset.cMap, wset.cMap)
 	copy(newset.vMap, wset.vMap)
-	for _, e := range wset.list {
-		newset.list = append(newset.list, e)
-	}
+	newset.list = append(CvcList{}, wset.list...)
 	newset.count = wset.count
 	return newset
 }
@@ -456,8 +454,8 @@ func (wg *CvcGroupSet) Checkifavailable(wmap *CvcWordMap) bool {
 
 // CvcWordMap : TODO: fill me
 type CvcWordMap struct {
-	cm   map[*CvcWord]int
-	keys CvcList
+	cm    map[*CvcWord]int
+	keys  CvcList
 	count int
 }
 
@@ -498,7 +496,7 @@ func (wmap *CvcWordMap) AddWord(w *CvcWord) bool {
 		return false
 	}
 	wmap.keys = append(wmap.keys, w)
-	wmap.cm[w] = 1
+	wmap.cm[w] = w.freq
 	wmap.count++
 	return true
 }

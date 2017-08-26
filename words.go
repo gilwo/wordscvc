@@ -197,7 +197,7 @@ func main() {
 	wmap := getWordsMap(globalInfo.inWordsFile)
 	fmt.Printf("map size: %d\ncontent:\n%s\n", wmap.Size(), wmap)
 
-	// set the base group accoring to the required settings
+	// set the base group according to the required settings
 	baseGroup := cvc.NewGroupSetLimitFreq(
 		globalInfo.maxSets,
 		globalInfo.maxWords,
@@ -291,7 +291,7 @@ func main() {
 	}
 	globalInfo.finishSignal = true
 
-	fmt.Println("waiting for waitForWorkers")
+	fmt.Printf("waiting for waitForWorkers, %d workers", globalInfo.currentWorkers)
 	<-waitForWorkers
 	fmt.Printf("exiting... after %s\n", time.Now().Sub(t0))
 
