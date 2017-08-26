@@ -92,7 +92,7 @@ var startedWorkers = make(chan struct{}, 100)
 var stoppedWorkers = make(chan struct{}, 100)
 var maxSize int = 0
 
-func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
+func findGroups(group *cvc.GroupSet, wordmap *cvc.WordMap) {
 	defer func() {
 		if fail := recover(); fail != nil {
 			// fmt.Printf("recovered from %s\n", fail)
@@ -138,7 +138,7 @@ func findGroups(group *cvc.CvcGroupSet, wordmap *cvc.CvcWordMap) {
 			break
 		} else if added {
 			wordmap.DelWord(k)
-			go findGroups(group.CopyCvcGroupSet(), wordmap.CopyCvcWordMap())
+			go findGroups(group.CopyGroupSet(), wordmap.CopyWordMap())
 		}
 	}
 }
@@ -323,20 +323,20 @@ func getMap(mapfile string) map[string]int {
 	return ret
 }
 
-func getWordsMap(fname string) *cvc.CvcWordMap {
-	wmap := cvc.NewCvcWordMap()
+func getWordsMap(fname string) *cvc.WordMap {
+	wmap := cvc.NewWordMap()
 
 	for _, wf := range getWordsFromFile(fname) {
-		var cvcw *cvc.CvcWord
+		var cvcw *cvc.Word
 		wfV := string(wf.word[1])
 		if _, ok := vowels[wfV]; ok {
-			cvcw = cvc.NewCVCWord(
+			cvcw = cvc.NewWord(
 				string(wf.word[0]),
 				string(wf.word[1]),
 				string(wf.word[2:]),
 				wf.number)
 		} else {
-			cvcw = cvc.NewCVCWord(
+			cvcw = cvc.NewWord(
 				string(wf.word[0:2]),
 				string(wf.word[2]),
 				string(wf.word[3:]),

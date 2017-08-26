@@ -11,7 +11,7 @@ func TestCVC(t *testing.T) {
 }
 
 func TestCVCword(t *testing.T) {
-	w := NewCVCWord("X", "E", "Z", 55)
+	w := NewWord("X", "E", "Z", 55)
 
 	expected := fmt.Sprintf("c[%s]:v[%s]:c[%s] [%s:%d]",
 		w.c1, w.v, w.c2, w.actword, w.freq)
@@ -29,7 +29,7 @@ func TestCVCword(t *testing.T) {
 	}
 }
 
-func prepareTestData() ([]string, []*CvcWord) {
+func prepareTestData() ([]string, []*Word) {
 	words := []string{
 		"AAB", // 1
 		"CED", // 2
@@ -45,20 +45,20 @@ func prepareTestData() ([]string, []*CvcWord) {
 		"BAG", // 12
 		"KEB", // 13
 	}
-	cvcwords := []*CvcWord{
-		NewCVCWord(words[0][0:1], words[0][1:2], words[0][2:3], 9),
-		NewCVCWord(words[1][0:1], words[1][1:2], words[1][2:3], 19),
-		NewCVCWord(words[2][0:1], words[2][1:2], words[2][2:3], 29),
-		NewCVCWord(words[3][0:1], words[3][1:2], words[3][2:3], 39),
-		NewCVCWord(words[4][0:1], words[4][1:2], words[4][2:3], 49),
-		NewCVCWord(words[5][0:1], words[5][1:2], words[5][2:3], 59),
-		NewCVCWord(words[6][0:1], words[6][1:2], words[6][2:3], 69),
-		NewCVCWord(words[7][0:1], words[7][1:2], words[7][2:3], 79),
-		NewCVCWord(words[8][0:1], words[8][1:2], words[8][2:3], 89),
-		NewCVCWord(words[9][0:1], words[9][1:2], words[9][2:3], 99),
-		NewCVCWord(words[10][0:1], words[10][1:2], words[10][2:3], 109),
-		NewCVCWord(words[11][0:1], words[11][1:2], words[11][2:3], 119),
-		NewCVCWord(words[12][0:1], words[12][1:2], words[12][2:3], 129),
+	cvcwords := []*Word{
+		NewWord(words[0][0:1], words[0][1:2], words[0][2:3], 9),
+		NewWord(words[1][0:1], words[1][1:2], words[1][2:3], 19),
+		NewWord(words[2][0:1], words[2][1:2], words[2][2:3], 29),
+		NewWord(words[3][0:1], words[3][1:2], words[3][2:3], 39),
+		NewWord(words[4][0:1], words[4][1:2], words[4][2:3], 49),
+		NewWord(words[5][0:1], words[5][1:2], words[5][2:3], 59),
+		NewWord(words[6][0:1], words[6][1:2], words[6][2:3], 69),
+		NewWord(words[7][0:1], words[7][1:2], words[7][2:3], 79),
+		NewWord(words[8][0:1], words[8][1:2], words[8][2:3], 89),
+		NewWord(words[9][0:1], words[9][1:2], words[9][2:3], 99),
+		NewWord(words[10][0:1], words[10][1:2], words[10][2:3], 109),
+		NewWord(words[11][0:1], words[11][1:2], words[11][2:3], 119),
+		NewWord(words[12][0:1], words[12][1:2], words[12][2:3], 129),
 	}
 	return words, cvcwords
 }
@@ -72,7 +72,7 @@ func TestCVCListAsString(t *testing.T) {
 	// fmt.Printf("%v: %p\n", w1, w1)
 
 	expected := words[0] + " " + words[1] + " " + words[2]
-	wl := &CvcList{}
+	wl := &WordList{}
 
 	if strings.Compare("", fmt.Sprintf("%s", wl)) != 0 {
 		t.Errorf("list is not empty")
@@ -89,7 +89,7 @@ func TestCVCListAsString(t *testing.T) {
 	}
 
 	// manual chekcing pointers are the same
-	// wl2 := &CvcList{}
+	// wl2 := &WordList{}
 	// *wl2 = append(*wl2, (*wl)[0])
 	// fmt.Printf("%v: %p\n", (*wl2)[0], *(&(*wl2)[0]))
 
@@ -122,7 +122,7 @@ func TestCVCcontain(t *testing.T) {
 	w3 := cws[2]
 	w4 := cws[3]
 
-	var wlist CvcList
+	var wlist WordList
 	wlist = append(wlist, w1, w2, w3)
 
 	if wlist.contain(w4) {
@@ -339,7 +339,7 @@ func TestCvcGroupSet(t *testing.T) {
 			testStringWithFreq)
 	}
 
-	group2 := group.CopyCvcGroupSet()
+	group2 := group.CopyGroupSet()
 	if group2.StringWithFreq() != testStringWithFreq {
 		t.Errorf("copy group '%s', is not as test string '%s'", group2.StringWithFreq(),
 			testStringWithFreq)
@@ -404,7 +404,7 @@ func TestCvcGroupFreq(t *testing.T) {
 func TestCvcMap(t *testing.T) {
 	_, cws := prepareTestData()
 
-	newmap := NewCvcWordMap()
+	newmap := NewWordMap()
 
 	newmap.AddWord(cws[0])
 	if newmap.AddWord(cws[0]) {
@@ -420,7 +420,7 @@ func TestCvcMap(t *testing.T) {
 	}
 	newmap.AddWord(cws[1])
 
-	copymap := newmap.CopyCvcWordMap()
+	copymap := newmap.CopyWordMap()
 	newmap.AddWord(cws[2])
 
 	testString2 := fmt.Sprintf("%s:%d, %s:%d",

@@ -7,12 +7,12 @@ import (
 )
 
 // ***************************************
-//           CvcWord
+//           Word
 // ***************************************
 
-// CvcWord - consonant/vowel/consonant actword bundle strucrt
+// Word - consonant/vowel/consonant actword bundle strucrt
 //  contain frequency for this word in the usage of the word
-type CvcWord struct {
+type Word struct {
 	c1      string
 	v       string
 	c2      string
@@ -20,9 +20,9 @@ type CvcWord struct {
 	freq    int
 }
 
-// NewCVCWord creating new CVC Word from given elements
-func NewCVCWord(c1 string, v string, c2 string, freq int) *CvcWord {
-	w := new(CvcWord)
+// NewWord creating new CVC Word from given elements
+func NewWord(c1 string, v string, c2 string, freq int) *Word {
+	w := new(Word)
 	w.c1 = c1
 	w.v = v
 	w.c2 = c2
@@ -31,28 +31,28 @@ func NewCVCWord(c1 string, v string, c2 string, freq int) *CvcWord {
 	return w
 }
 
-func (w *CvcWord) dumpString() string {
+func (w *Word) dumpString() string {
 	return fmt.Sprintf("c[%s]:v[%s]:c[%s] [%s:%d]",
 		w.c1, w.v, w.c2, w.actword, w.freq)
 }
 
 // DumpString : TODO: fill me
-func (w *CvcWord) DumpString() string {
+func (w *Word) DumpString() string {
 	return w.dumpString()
 }
 
-func (w *CvcWord) String() string {
+func (w *Word) String() string {
 	return w.actword
 }
 
 // ***************************************
-//           CvcList
+//           WordList
 // ***************************************
 
-// CvcList : TODO: fill me
-type CvcList []*CvcWord
+// WordList : TODO: fill me
+type WordList []*Word
 
-func (wlist *CvcList) contain(cw *CvcWord) bool {
+func (wlist *WordList) contain(cw *Word) bool {
 	for _, e := range *wlist {
 		if e.actword == cw.actword {
 			return true
@@ -61,7 +61,7 @@ func (wlist *CvcList) contain(cw *CvcWord) bool {
 	return false
 }
 
-func (wlist *CvcList) countCVCWord(cw *CvcWord) int {
+func (wlist *WordList) countCVCWord(cw *Word) int {
 	z := 0
 	for _, e := range *wlist {
 		if e.actword == cw.actword {
@@ -71,7 +71,7 @@ func (wlist *CvcList) countCVCWord(cw *CvcWord) int {
 	return z
 }
 
-func (wlist *CvcList) dump() []string {
+func (wlist *WordList) dump() []string {
 	var out []string
 	for _, e := range *wlist {
 		out = append(out, e.actword)
@@ -79,7 +79,7 @@ func (wlist *CvcList) dump() []string {
 	return out
 }
 
-func (wlist *CvcList) asString() string {
+func (wlist *WordList) asString() string {
 	var out string
 	for _, e := range *wlist {
 		out += e.actword + " "
@@ -87,7 +87,7 @@ func (wlist *CvcList) asString() string {
 	return out[0 : len(out)-1]
 }
 
-func (wlist *CvcList) asStringWithFreq() string {
+func (wlist *WordList) asStringWithFreq() string {
 	var out string
 	for _, e := range *wlist {
 		out += fmt.Sprintf("%s:%d ", e, e.freq)
@@ -95,7 +95,7 @@ func (wlist *CvcList) asStringWithFreq() string {
 	return out[0 : len(out)-1]
 }
 
-func (wlist *CvcList) String() string {
+func (wlist *WordList) String() string {
 	if len(*wlist) == 0 {
 		return ""
 	}
@@ -103,7 +103,7 @@ func (wlist *CvcList) String() string {
 }
 
 // StringWithFreq : TODO: fill me
-func (wlist *CvcList) StringWithFreq() string {
+func (wlist *WordList) StringWithFreq() string {
 	if len(*wlist) == 0 {
 		return ""
 	}
@@ -111,8 +111,8 @@ func (wlist *CvcList) StringWithFreq() string {
 }
 
 // CopyList : TODO: fill me
-func (wlist *CvcList) CopyList() *CvcList {
-	newlist := &CvcList{}
+func (wlist *WordList) CopyList() *WordList {
+	newlist := &WordList{}
 	for _, e := range *wlist {
 		*newlist = append(*newlist, e)
 	}
@@ -120,7 +120,7 @@ func (wlist *CvcList) CopyList() *CvcList {
 }
 
 // ***************************************
-//           CvcList
+//           WordSet
 // ***************************************
 
 type cbundle struct {
@@ -132,9 +132,9 @@ type vbundle struct {
 	count int
 }
 
-// CvcSet : TODO: fill me
-type CvcSet struct {
-	list       CvcList
+// WordSet : TODO: fill me
+type WordSet struct {
+	list       WordList
 	cMap       []cbundle
 	vMap       []vbundle
 	count      int
@@ -143,11 +143,11 @@ type CvcSet struct {
 	freqabove  int
 }
 
-// CvcSetList : TODO: fill me
-type CvcSetList []*CvcSet
+// WordSetList : TODO: fill me
+type WordSetList []*WordSet
 
 // DumpSet : TODO: fill me
-func (wset *CvcSet) DumpSet() string {
+func (wset *WordSet) DumpSet() string {
 	return fmt.Sprintf("list:\n%s\n"+
 		"consonants:\n%v\n"+
 		"vowels:\n%v\n"+
@@ -165,13 +165,13 @@ func (wset *CvcSet) DumpSet() string {
 }
 
 // NewSet : return new set with limit of 10 elements cvcwords
-func NewSet() *CvcSet {
+func NewSet() *WordSet {
 	return newSetConfigurable(20, 5, 10)
 }
 
 // newSetConfigurable : return new set with configurable limits
-func newSetConfigurable(consonantCount, vowelCount, setLimit int) *CvcSet {
-	newset := new(CvcSet)
+func newSetConfigurable(consonantCount, vowelCount, setLimit int) *WordSet {
+	newset := new(WordSet)
 	newset.cMap = make([]cbundle, consonantCount)
 	newset.vMap = make([]vbundle, vowelCount)
 	newset.setlimit = setLimit
@@ -179,7 +179,7 @@ func newSetConfigurable(consonantCount, vowelCount, setLimit int) *CvcSet {
 }
 
 // NewSetLimit : TODO: fill me
-func NewSetLimit(setlimit int) *CvcSet {
+func NewSetLimit(setlimit int) *WordSet {
 	newset := NewSet()
 	if setlimit > newset.setlimit {
 		panic("Set not support more then 10 elements")
@@ -189,7 +189,7 @@ func NewSetLimit(setlimit int) *CvcSet {
 }
 
 // NewSetLimitFreq : TODO: fill me
-func NewSetLimitFreq(setlimit, fcutoff, fabove int) *CvcSet {
+func NewSetLimitFreq(setlimit, fcutoff, fabove int) *WordSet {
 	newset := NewSet()
 	newset.setlimit = setlimit
 	newset.freqcutoff = fcutoff
@@ -197,16 +197,16 @@ func NewSetLimitFreq(setlimit, fcutoff, fabove int) *CvcSet {
 	return newset
 }
 
-func (wset *CvcSet) String() string {
+func (wset *WordSet) String() string {
 	return wset.list.String()
 }
 
 // StringWithFreq : TODO: fill me
-func (wset *CvcSet) StringWithFreq() string {
+func (wset *WordSet) StringWithFreq() string {
 	return wset.list.StringWithFreq()
 }
 
-func (wset *CvcSet) freqCheckOk(w *CvcWord) bool {
+func (wset *WordSet) freqCheckOk(w *Word) bool {
 	if wset.freqcutoff == 0 {
 		return true
 	}
@@ -235,7 +235,7 @@ func (wset *CvcSet) freqCheckOk(w *CvcWord) bool {
 }
 
 // AddWord : TODO: fill me
-func (wset *CvcSet) AddWord(w *CvcWord) (added bool, full bool) {
+func (wset *WordSet) AddWord(w *Word) (added bool, full bool) {
 	if wset.count == wset.setlimit {
 		return false, true
 	}
@@ -301,29 +301,33 @@ func (wset *CvcSet) AddWord(w *CvcWord) (added bool, full bool) {
 }
 
 // CopySet : TODO: fill me
-func (wset *CvcSet) CopySet() *CvcSet {
+func (wset *WordSet) CopySet() *WordSet {
 	newset := NewSetLimitFreq(
 		wset.setlimit, wset.freqcutoff, wset.freqabove)
 	copy(newset.cMap, wset.cMap)
 	copy(newset.vMap, wset.vMap)
-	newset.list = append(CvcList{}, wset.list...)
+	newset.list = append(WordList{}, wset.list...)
 	newset.count = wset.count
 	return newset
 }
 
-// CvcGroupSet : TODO: fill me
-type CvcGroupSet struct {
-	list        CvcSetList
-	count       int // current count of CvcSet in group
-	current     int // current (not filled) CvcSet in group
-	grouplimit  int // max amount of CvcSet in group
-	persetlimit int // max amount of CvcWords in each CvcSet in the group
+// ***************************************
+//           GroupSet
+// ***************************************
+
+// GroupSet : TODO: fill me
+type GroupSet struct {
+	list        WordSetList
+	count       int // current count of WordSet in group
+	current     int // current (not filled) WordSet in group
+	grouplimit  int // max amount of WordSet in group
+	persetlimit int // max amount of Words in each WordSet in the group
 	freqcutoff  int // frequency threshold
 	freqabove   int // number of elements required to be above threshold
 }
 
 // DumpGroup : TODO: fill me
-func (wg *CvcGroupSet) DumpGroup() string {
+func (wg *GroupSet) DumpGroup() string {
 	var out = string("\n")
 	for i, set := range wg.list {
 		// fmt.Printf("testing %d\n", i)
@@ -346,23 +350,23 @@ func (wg *CvcGroupSet) DumpGroup() string {
 }
 
 // NewGroupSetLimit : TODO: fill me
-func NewGroupSetLimit(grouplimit, setlimit int) *CvcGroupSet {
-	newgroup := new(CvcGroupSet)
-	newgroup.list = CvcSetList{}
+func NewGroupSetLimit(grouplimit, setlimit int) *GroupSet {
+	newgroup := new(GroupSet)
+	newgroup.list = WordSetList{}
 	newgroup.grouplimit = grouplimit
 	newgroup.persetlimit = setlimit
 	return newgroup
 }
 
 // NewGroupSetLimitFreq : TODO: fill me
-func NewGroupSetLimitFreq(grouplimit, setlimit, fcutoff, fabove int) *CvcGroupSet {
+func NewGroupSetLimitFreq(grouplimit, setlimit, fcutoff, fabove int) *GroupSet {
 	newgroup := NewGroupSetLimit(grouplimit, setlimit)
 	newgroup.freqcutoff = fcutoff
 	newgroup.freqabove = fabove
 	return newgroup
 }
 
-func (wg *CvcGroupSet) String() string {
+func (wg *GroupSet) String() string {
 	var out = string("\n")
 	for _, set := range wg.list {
 		// fmt.Printf("testing %d\n", i)
@@ -372,7 +376,7 @@ func (wg *CvcGroupSet) String() string {
 }
 
 // StringWithFreq : TODO: fill me
-func (wg *CvcGroupSet) StringWithFreq() string {
+func (wg *GroupSet) StringWithFreq() string {
 	var out = string("\n")
 	for i, set := range wg.list {
 		// fmt.Printf("testing %d\n", i)
@@ -382,7 +386,7 @@ func (wg *CvcGroupSet) StringWithFreq() string {
 }
 
 // CurrentSize : TODO: fill me
-func (wg *CvcGroupSet) CurrentSize() int {
+func (wg *GroupSet) CurrentSize() int {
 	count := wg.count
 	current_list_count := 0
 	if wg.count == wg.grouplimit {
@@ -395,12 +399,12 @@ func (wg *CvcGroupSet) CurrentSize() int {
 }
 
 // MaxSize : TODO: fill me
-func (wg *CvcGroupSet) MaxSize() int {
+func (wg *GroupSet) MaxSize() int {
 	return wg.grouplimit * wg.persetlimit
 }
 
 // AddWord : TODO: fill me
-func (wg *CvcGroupSet) AddWord(w *CvcWord) (added bool, full bool) {
+func (wg *GroupSet) AddWord(w *Word) (added bool, full bool) {
 	// fmt.Printf("count: %d\n", wg.count)
 	switch {
 	case wg.count == wg.grouplimit && wg.list[wg.current].count == wg.persetlimit:
@@ -425,8 +429,8 @@ func (wg *CvcGroupSet) AddWord(w *CvcWord) (added bool, full bool) {
 	return added, false
 }
 
-// CopyCvcGroupSet : TODO: fill me
-func (wg *CvcGroupSet) CopyCvcGroupSet() *CvcGroupSet {
+// CopyGroupSet : TODO: fill me
+func (wg *GroupSet) CopyGroupSet() *GroupSet {
 	newgroup := NewGroupSetLimitFreq(
 		wg.grouplimit, wg.persetlimit, wg.freqcutoff, wg.freqabove)
 
@@ -442,7 +446,7 @@ func (wg *CvcGroupSet) CopyCvcGroupSet() *CvcGroupSet {
 }
 
 // Checkifavailable : TODO: fill me
-func (wg *CvcGroupSet) Checkifavailable(wmap *CvcWordMap) bool {
+func (wg *GroupSet) Checkifavailable(wmap *WordMap) bool {
 	if wg.MaxSize()-wg.CurrentSize() > wmap.count {
 		fmt.Printf("missing : %d, available %d\n", int(wg.MaxSize())-int(wg.CurrentSize()),
 			wmap.count)
@@ -473,45 +477,49 @@ func (wg *CvcGroupSet) Checkifavailable(wmap *CvcWordMap) bool {
 	return true
 }
 
-// CvcWordMap : TODO: fill me
-type CvcWordMap struct {
-	cm    map[*CvcWord]int
-	keys  CvcList
+// ***************************************
+//           WordMap
+// ***************************************
+
+// WordMap : TODO: fill me
+type WordMap struct {
+	cm    map[*Word]int
+	keys  WordList
 	count int
 }
 
 // GetCm : TODO: fill me
-func (wmap *CvcWordMap) GetCm() *map[*CvcWord]int {
+func (wmap *WordMap) GetCm() *map[*Word]int {
 	return &wmap.cm
 }
 
-// NewCvcWordMap : TODO: fill me
-func NewCvcWordMap() *CvcWordMap {
-	var newmap = &CvcWordMap{
-		cm: make(map[*CvcWord]int),
+// NewWordMap : TODO: fill me
+func NewWordMap() *WordMap {
+	var newmap = &WordMap{
+		cm: make(map[*Word]int),
 		// TODO: check if we need to initialize the key var ?
-		// keys: make([]*CvcWord, 1),
+		// keys: make([]*Word, 1),
 	}
 	return newmap
 }
 
-// CopyCvcWordMap TODO: fill me
-func (wmap *CvcWordMap) CopyCvcWordMap() *CvcWordMap {
-	newmap := NewCvcWordMap()
+// CopyWordMap TODO: fill me
+func (wmap *WordMap) CopyWordMap() *WordMap {
+	newmap := NewWordMap()
 	for k, v := range wmap.cm {
 		newmap.cm[k] = v
 	}
-	newmap.keys = make(CvcList, len(wmap.keys))
+	newmap.keys = make(WordList, len(wmap.keys))
 	copy(newmap.keys, wmap.keys)
 	newmap.count = wmap.count
 
 	// the following line create error in the TestCvcMap
-	// newmap.keys = append(CvcList{}, wmap.keys[0])
+	// newmap.keys = append(WordList{}, wmap.keys[0])
 	return newmap
 }
 
 // AddWord TODO: fill me
-func (wmap *CvcWordMap) AddWord(w *CvcWord) bool {
+func (wmap *WordMap) AddWord(w *Word) bool {
 	if _, w_already := wmap.cm[w]; w_already {
 		// print(w, " already in pool")
 		return false
@@ -523,7 +531,7 @@ func (wmap *CvcWordMap) AddWord(w *CvcWord) bool {
 }
 
 // DelWord TODO: fill me
-func (wmap *CvcWordMap) DelWord(w *CvcWord) bool {
+func (wmap *WordMap) DelWord(w *Word) bool {
 	if _, w_exist := wmap.cm[w]; !w_exist {
 		return false
 	}
@@ -538,7 +546,7 @@ func (wmap *CvcWordMap) DelWord(w *CvcWord) bool {
 	return true
 }
 
-func (wmap *CvcWordMap) String() string {
+func (wmap *WordMap) String() string {
 	out := ""
 	sortedkeys := wmap.keys
 
@@ -559,9 +567,7 @@ func (wmap *CvcWordMap) String() string {
 }
 
 // Size TODO: fill me
-func (wmap *CvcWordMap) Size() int {
+func (wmap *WordMap) Size() int {
 	return len(wmap.cm)
 }
 
-// // CvcPool ...
-// type CvcPool map[string]map[string]CvcList
