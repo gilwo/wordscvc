@@ -314,12 +314,12 @@ func (wset *CvcSet) CopySet() *CvcSet {
 // CvcGroupSet : TODO: fill me
 type CvcGroupSet struct {
 	list        CvcSetList
-	count       int
-	current     int
-	grouplimit  int
-	persetlimit int
-	freqcutoff  int
-	freqabove   int
+	count       int // current count of CvcSet in group
+	current     int // current (not filled) CvcSet in group
+	grouplimit  int // max amount of CvcSet in group
+	persetlimit int // max amount of CvcWords in each CvcSet in the group
+	freqcutoff  int // frequency threshold
+	freqabove   int // number of elements required to be above threshold
 }
 
 // DumpGroup : TODO: fill me
@@ -446,6 +446,27 @@ func (wg *CvcGroupSet) Checkifavailable(wmap *CvcWordMap) bool {
 	if wg.MaxSize()-wg.CurrentSize() > wmap.count {
 		fmt.Printf("missing : %d, available %d\n", int(wg.MaxSize())-int(wg.CurrentSize()),
 			wmap.count)
+		return false
+	}
+
+	aboveFreqRequiredCount := wg.freqabove * wg.grouplimit
+	belowFreqRequiredCount := wg.grouplimit * wg.persetlimit - aboveFreqRequiredCount
+
+	aboveFreqCurrentCount := wg.count * wg.freqabove
+	belowFreqCurrentCount := wg.count * (wg.persetlimit - wg.freqabove)
+
+	aboveFreqMissing := aboveFreqRequiredCount - aboveFreqCurrentCount
+	belowFreqMissing := belowFreqRequiredCount - belowFreqCurrentCount
+
+	var aboveAvailableCount, belowAvailableCount int
+	for _, v := range *wmap.GetCm() {
+		if v > wg.freqabove {
+			aboveAvailableCount++
+		} else {
+			belowAvailableCount++
+		}
+	}
+	if belowAvailableCount < belowFreqMissing && aboveAvailableCount < aboveFreqMissing {
 		return false
 	}
 
