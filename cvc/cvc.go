@@ -464,13 +464,13 @@ func (wg *GroupSet) Checkifavailable(wmap *WordMap) bool {
 
 	var aboveAvailableCount, belowAvailableCount int
 	for _, v := range *wmap.GetCm() {
-		if v > wg.freqabove {
+		if v > wg.freqcutoff {
 			aboveAvailableCount++
 		} else {
 			belowAvailableCount++
 		}
 	}
-	if belowAvailableCount < belowFreqMissing && aboveAvailableCount < aboveFreqMissing {
+	if belowAvailableCount < belowFreqMissing || aboveAvailableCount < aboveFreqMissing {
 		return false
 	}
 

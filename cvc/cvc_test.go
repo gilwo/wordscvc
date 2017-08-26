@@ -449,3 +449,55 @@ func TestCvcMap(t *testing.T) {
 
 	// fmt.Printf("%s\n", newmap)
 }
+
+func TestCvcGroupAvailableFreq(t *testing.T) {
+	_, cws := prepareTestData()
+
+	cws[0].freq = 17
+	cws[1].freq = 21
+	cws[2].freq = 4
+	cws[3].freq = 105
+	cws[4].freq = 11
+	cws[5].freq = 9
+	cws[6].freq = 29
+	cws[7].freq = 309
+	cws[8].freq = 4444
+
+	newmap := NewWordMap()
+	for _, w := range cws[0:4] {
+		newmap.AddWord(w)
+	}
+
+	freq_cutoff := 20
+	freq_above := 1
+	group := NewGroupSetLimitFreq(3, 2, freq_cutoff, freq_above)
+
+	if group.Checkifavailable(newmap) {
+		t.Errorf("group is empty, cutoff: %d, cws: \"%s\"\n", freq_cutoff, newmap)
+	}
+
+	if group.CurrentSize() > 0 {
+		t.Errorf("group is not empty")
+	}
+
+	for _, w :=range cws[4:9] {
+		newmap.AddWord(w)
+	}
+
+	freq_cutoff = 20
+	freq_above = 1
+	group = NewGroupSetLimitFreq(3, 2, freq_cutoff, freq_above)
+
+	if !group.Checkifavailable(newmap) {
+		t.Errorf("group is empty, cutoff: %d, cws: \"%s\"\n", freq_cutoff, newmap)
+	}
+
+	freq_cutoff = 5000
+	freq_above = 2
+	group2 := NewGroupSetLimitFreq(3, 2, freq_cutoff, freq_above)
+
+	if group2.Checkifavailable(newmap) {
+		t.Errorf("group is empty, cutoff: %d, cws: \"%s\"\n", freq_cutoff, newmap)
+	}
+
+}
