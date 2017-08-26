@@ -410,7 +410,7 @@ func TestCvcMap(t *testing.T) {
 	if newmap.AddWord(cws[0]) {
 		t.Errorf("cvcword %s, should not be in map %s", cws[0], newmap)
 	}
-	testString := fmt.Sprintf("%s:1", cws[0])
+	testString := fmt.Sprintf("%s:%d", cws[0], cws[0].freq)
 	if testString != newmap.String() {
 		t.Errorf("map '%s', is not as test string '%s'", newmap, testString)
 	}
@@ -423,7 +423,8 @@ func TestCvcMap(t *testing.T) {
 	copymap := newmap.CopyCvcWordMap()
 	newmap.AddWord(cws[2])
 
-	testString2 := fmt.Sprintf("%s:1, %s:1", cws[0], cws[1])
+	testString2 := fmt.Sprintf("%s:%d, %s:%d",
+		cws[0], cws[0].freq, cws[1], cws[1].freq)
 	if copymap.String() != testString2 {
 		t.Errorf("map copy content '%s' not identical to expected '%s'", copymap, testString2)
 	}
@@ -441,7 +442,7 @@ func TestCvcMap(t *testing.T) {
 		t.Errorf("word '%s' should not be in map", cws[0])
 	}
 	act := fmt.Sprintf("%s", copymap)
-	exp := fmt.Sprintf("%s:1", cws[1])
+	exp := fmt.Sprintf("%s:%d", cws[1], cws[1].freq)
 	if act != exp {
 		t.Errorf("content of map '%s' is not as expected '%s'", act, exp)
 	}
