@@ -291,7 +291,7 @@ func main() {
 	}
 	globalInfo.finishSignal = true
 
-	fmt.Printf("waiting for waitForWorkers, %d workers", globalInfo.currentWorkers)
+	fmt.Printf("waiting for waitForWorkers, %d workers\n", globalInfo.currentWorkers)
 	<-waitForWorkers
 	fmt.Printf("exiting... after %s\n", time.Now().Sub(t0))
 
