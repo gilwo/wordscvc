@@ -17,7 +17,7 @@ import (
 )
 
 var globalInfo struct {
-	// flagable vars
+	// flag able vars
 	maxGroups                   int
 	freqCutoff                  int
 	freqWordsPerLineAboveCutoff int
@@ -44,21 +44,21 @@ var globalInfo struct {
 func init() {
 	const (
 		defaultVowelsFile     = "vowels.txt"
-		defaultConsonentsFile = "consonants.txt"
+		defaultConsonantsFile = "consonants.txt"
 		defaultWordsFile      = "words_list.txt"
 	)
 	flag.IntVar(&globalInfo.maxGroups, "maxres", 20,
 		"maximum number of result groups to generate")
 	flag.IntVar(&globalInfo.maxSets, "maxset", 15,
-		"numbner of sets per group")
+		"number of sets per group")
 	flag.IntVar(&globalInfo.maxWords, "maxwords", 10,
-		"numbner of words per set")
+		"number of words per set")
 	flag.IntVar(&globalInfo.freqCutoff, "freq", 25,
 		"frequency cutoff threshold for words, lower is more common")
 	flag.IntVar(&globalInfo.freqWordsPerLineAboveCutoff, "freqcutoff", 3,
 		"how many words to be above cutoff threshold per line")
 
-	flag.StringVar(&globalInfo.inConsonentFile, "consonants", defaultConsonentsFile,
+	flag.StringVar(&globalInfo.inConsonentFile, "consonants", defaultConsonantsFile,
 		"input file name for words list to use for creating the lines groups results")
 	flag.StringVar(&globalInfo.inVowelFile, "vowels", defaultVowelsFile,
 		"input file name for words list to use for creating the lines groups results")
@@ -74,10 +74,10 @@ func init() {
 		"how much time to run (in seconds), default 30 sec")
 
 	flag.StringVar(&globalInfo.cpuprofile, "cpuprofile", "",
-		"enable cpuprofling and save to file")
+		"enable cpu profling and save to file")
 
 	flag.StringVar(&globalInfo.memprofile, "memprofile", "",
-		"enable memprofling and save to file")
+		"enable memory profling and save to file")
 
 	flag.BoolVar(&globalInfo.debugEnabled, "debug", false,
 	"enable debugging information")
