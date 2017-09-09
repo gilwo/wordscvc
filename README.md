@@ -1,5 +1,5 @@
 # CVC word list generator project
-CVC stand for Consonent/Vowel/Consonent
+CVC stand for Consonant/Vowel/Consonant
 
 this project aim is to generate group of sets of CVC words.
 
