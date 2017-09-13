@@ -1,4 +1,6 @@
-# CVC word list generator project
+# CVC word set generator project
+
+### Ths project is still under development
 CVC stand for Consonant/Vowel/Consonant
 
 this project aim is to generate group of sets of CVC words.
@@ -24,3 +26,6 @@ the requirement on the group are as follow
 
 the solution was to go over all the permutations of the words and try to find a valid permutation
 
+#### issues need to be addressed
+* use some form of worker pool for the go routines 
+* investigate memory consumption too high
