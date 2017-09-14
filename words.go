@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gilwo/words/cvc"
+	"github.com/gilwo/wordscvc/cvc"
 )
 
 var globalInfo struct {
