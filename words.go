@@ -23,7 +23,7 @@ type flagOpts struct {
 	MaxWords                    int    `short:"W" description:"3  number of words per set" default:"10"`
 	FreqCutoff                  int    `short:"f" description:"4  frequency cutoff threshold for words, lower is more common" default:"25"`
 	FreqWordsPerLineAboveCutoff int    `short:"a" description:"5  how many words to be above cutoff threshold per line" default:"3"`
-	VowelLimit                  int    `short:"v" description:"6  how many time each vowel repeat per set" hidden:"1"`// 2
+	VowelLimit                  int    `long:"vowel" description:"6  how many time each vowel repeat per set" hidden:"1"`// 2
 
 	InConsonantFile             string `short:"C" description:"7  input file name for consonants to use" optional:"1" default:"consonants.txt"`
 	InVowelFile                 string `short:"V" description:"8  input file name for vowels to use" optional:"1" default:"vowels.txt"`
@@ -36,7 +36,9 @@ type flagOpts struct {
 
 	CpuProfile                  string `short:"c" description:"13 enable cpu profiling and save to file"`
 	MemProfile                  string `short:"m" description:"14 enable memory profiling and save to file"`
+
 	DebugEnabled                bool   `short:"d" description:"15 enable debugging information"`
+	Verbose                     [2]bool `short:"v" description:"16 show verbose information" choice:"2"`
 }
 
 func (fo flagOpts) String() string {
@@ -59,7 +61,8 @@ func (fo flagOpts) String() string {
 		"\n"+
 		"\tcpu profile file: '%v'\n"+
 		"\tmemory profile file: '%v'\n"+
-		"\tdebug enabled: '%v'\n",
+		"\tdebug enabled: '%v'\n"+
+		"\tverbose: '%v'\n",
 		fo.MaxGroups,
 		fo.MaxSets,
 		fo.MaxWords,
@@ -75,6 +78,7 @@ func (fo flagOpts) String() string {
 		fo.CpuProfile,
 		fo.MemProfile,
 		fo.DebugEnabled,
+		fo.Verbose,
 	)
 }
 
@@ -89,7 +93,6 @@ type genOpts struct {
 }
 
 var Opts genOpts
-
 
 var consonants, vowels map[string]int
 
@@ -160,6 +163,9 @@ func main() {
 			case flags.ErrHelp:
 				//fmt.Println("help requested, existing")
 				os.Exit(0)
+			case flags.ErrInvalidChoice:
+				fmt.Println("-v or -vv")
+				os.Exit(1)
 			default:
 				fmt.Printf("error parsing opts: %v\n", e.Type)
 			}
