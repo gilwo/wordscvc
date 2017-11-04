@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,7 +13,82 @@ import (
 	"time"
 
 	"github.com/gilwo/wordscvc/cvc"
+	"github.com/jessevdk/go-flags"
 )
+
+type flagOpts struct {
+	// flag able vars
+	MaxGroups                   int    `short:"G" description:"1  number of result groups to generate" default:"20"`
+	MaxSets                     int    `short:"S" description:"2  number of sets per group" default:"15"`
+	MaxWords                    int    `short:"W" description:"3  number of words per set" default:"10"`
+	FreqCutoff                  int    `short:"f" description:"4  frequency cutoff threshold for words, lower is more common" default:"25"`
+	FreqWordsPerLineAboveCutoff int    `short:"a" description:"5  how many words to be above cutoff threshold per line" default:"3"`
+	VowelLimit                  int    `short:"v" description:"6  how many time each vowel repeat per set" hidden:"1"`// 2
+
+	InConsonantFile             string `short:"C" description:"7  input file name for consonants to use" optional:"1" default:"consonants.txt"`
+	InVowelFile                 string `short:"V" description:"8  input file name for vowels to use" optional:"1" default:"vowels.txt"`
+	InWordsFile                 string `short:"i" description:"9  input file name for words list to use for creating the lines groups results" optional:"1" default:"words_list.txt"`
+
+	FilterFile                  string `short:"F" description:"10 input file name for filtered words"`
+	OutResultFile               string `short:"o" description:"11 output file for generated results" default:"words_result.txt" default-mask:"-"`
+
+	TimeToRun                   int    `short:"t" description:"12 how much time to run (in seconds)" default:"30"`
+
+	CpuProfile                  string `short:"c" description:"13 enable cpu profiling and save to file"`
+	MemProfile                  string `short:"m" description:"14 enable memory profiling and save to file"`
+	DebugEnabled                bool   `short:"d" description:"15 enable debugging information"`
+}
+
+func (fo flagOpts) String() string {
+	return fmt.Sprintf("options setting:\n"+
+		"\tmax groups: '%v'\n"+
+		"\tmax sets: '%v'\n"+
+		"\tmax words: '%v'\n"+
+		"\tfrequency cutoff: '%v'\n"+
+		"\tabove frequency words per set: '%v'\n"+
+		//"\tvowels limit: '%v'\n"+
+		"\n"+
+		"\tconsonant file : '%v'\n"+
+		"\tvowels file: '%v'\n"+
+		"\twords file: '%v'\n"+
+		"\n"+
+		"\tfilter file: '%v'\n"+
+		"\tresult output file: '%v'\n"+
+		"\n"+
+		"\ttime to run: '%v'\n"+
+		"\n"+
+		"\tcpu profile file: '%v'\n"+
+		"\tmemory profile file: '%v'\n"+
+		"\tdebug enabled: '%v'\n",
+		fo.MaxGroups,
+		fo.MaxSets,
+		fo.MaxWords,
+		fo.FreqCutoff,
+		fo.FreqWordsPerLineAboveCutoff,
+		//fo.VowelLimit,
+		fo.InConsonantFile,
+		fo.InVowelFile,
+		fo.InWordsFile,
+		fo.FilterFile,
+		fo.OutResultFile,
+		fo.TimeToRun,
+		fo.CpuProfile,
+		fo.MemProfile,
+		fo.DebugEnabled,
+	)
+}
+
+type genOpts struct {
+	flagOpts
+
+	// internal vars
+	countGroups    int
+	finishSignal   bool
+	maxWorkers     int
+	currentWorkers int
+}
+
+var Opts genOpts
 
 var globalInfo struct {
 	// flag able vars
@@ -41,47 +115,6 @@ var globalInfo struct {
 	currentWorkers int
 }
 
-func init() {
-	const (
-		defaultVowelsFile     = "vowels.txt"
-		defaultConsonantsFile = "consonants.txt"
-		defaultWordsFile      = "words_list.txt"
-	)
-	flag.IntVar(&globalInfo.maxGroups, "maxres", 20,
-		"maximum number of result groups to generate")
-	flag.IntVar(&globalInfo.maxSets, "maxset", 15,
-		"number of sets per group")
-	flag.IntVar(&globalInfo.maxWords, "maxwords", 10,
-		"number of words per set")
-	flag.IntVar(&globalInfo.freqCutoff, "freq", 25,
-		"frequency cutoff threshold for words, lower is more common")
-	flag.IntVar(&globalInfo.freqWordsPerLineAboveCutoff, "freqcutoff", 3,
-		"how many words to be above cutoff threshold per line")
-
-	flag.StringVar(&globalInfo.inConsonentFile, "consonants", defaultConsonantsFile,
-		"input file name for words list to use for creating the lines groups results")
-	flag.StringVar(&globalInfo.inVowelFile, "vowels", defaultVowelsFile,
-		"input file name for words list to use for creating the lines groups results")
-	flag.StringVar(&globalInfo.inWordsFile, "words", defaultWordsFile,
-		"input file name for words list to use for creating the lines groups results")
-
-	flag.StringVar(&globalInfo.filterFiles, "filter", "",
-		"input file name for filtered words")
-	flag.StringVar(&globalInfo.outResultFile, "output", "",
-		"output file for generated results (default when not set words_result.txt)")
-
-	flag.IntVar(&globalInfo.timeToRun, "timeToRun", 30,
-		"how much time to run (in seconds), default 30 sec")
-
-	flag.StringVar(&globalInfo.cpuprofile, "cpuprofile", "",
-		"enable cpu profling and save to file")
-
-	flag.StringVar(&globalInfo.memprofile, "memprofile", "",
-		"enable memory profling and save to file")
-
-	flag.BoolVar(&globalInfo.debugEnabled, "debug", false,
-	"enable debugging information")
-}
 
 var consonants, vowels map[string]int
 
@@ -145,26 +178,19 @@ func findGroups(group *cvc.GroupSet, wordmap *cvc.WordMap) {
 
 func main() {
 
-	flag.Parse()
-	if globalInfo.outResultFile == "" {
-		globalInfo.outResultFile = "words_result.txt"
+	a, err := flags.NewParser(&Opts, flags.Default).Parse()
+	if err != nil {
+		if e, ok := err.(*flags.Error); ok {
+			switch e.Type {
+			case flags.ErrHelp:
+				//fmt.Println("help requested, existing")
+				os.Exit(0)
+			default:
+				fmt.Printf("error parsing opts: %v\n", e.Type)
+			}
+		}
 	}
-	fmt.Printf("\nlooking for max %d groups of %d sets (%d per set), "+
-		"with frequency cutoff of %d, %d words above cutoff threshold for each set\n"+
-		"using input word file \"%s\", \ninput vowel file \"%s\", \n"+
-		"input consonant file \"%s\", \noutput file \"%s\", \nfilter file \"%s\"\n"+
-		"running for %d seconds\n",
-		globalInfo.maxGroups,
-		globalInfo.maxSets,
-		globalInfo.maxWords,
-		globalInfo.freqCutoff,
-		globalInfo.freqWordsPerLineAboveCutoff,
-		globalInfo.inWordsFile,
-		globalInfo.inVowelFile,
-		globalInfo.inConsonentFile,
-		globalInfo.outResultFile,
-		globalInfo.filterFiles,
-		globalInfo.timeToRun)
+	fmt.Printf("opts : %v\na %v\n", Opts, a)
 
 	if globalInfo.memprofile != "" {
 		f, err := os.Create(globalInfo.memprofile)
