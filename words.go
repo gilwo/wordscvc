@@ -82,7 +82,7 @@ func (fo flagOpts) String() string {
 	)
 }
 
-type genOpts struct {
+type varOpts struct {
 	flagOpts
 
 	// internal vars
@@ -92,7 +92,7 @@ type genOpts struct {
 	currentWorkers int
 }
 
-var Opts genOpts
+var GenVarOpts varOpts
 
 var consonants, vowels map[string]int
 
@@ -131,17 +131,17 @@ func findGroups(group *cvc.GroupSet, wordmap *cvc.WordMap) {
 
 	for k := range zmap {
 
-		if Opts.finishSignal {
+		if GenVarOpts.finishSignal {
 			// fmt.Println("finishSignal issued, exiting")
 			break
 		}
-		if Opts.countGroups >= Opts.MaxGroups {
-			// fmt.Printf("groups count %d reached max groups %d", Opts.countGroups, Opts.MaxGroups)
+		if GenVarOpts.countGroups >= GenVarOpts.MaxGroups {
+			// fmt.Printf("groups count %d reached max groups %d", GenVarOpts.countGroups, GenVarOpts.MaxGroups)
 			break
 		}
 		if added, full := group.AddWord(k); full == true {
 			msg := fmt.Sprintf("group completed\n%s\n", group.StringWithFreq())
-			if Opts.DebugEnabled {
+			if GenVarOpts.DebugEnabled {
 				msg += group.DumpGroup() + "\n"
 			}
 			// fmt.Println(msg)
@@ -156,7 +156,7 @@ func findGroups(group *cvc.GroupSet, wordmap *cvc.WordMap) {
 
 func main() {
 
-	a, err := flags.NewParser(&Opts, flags.Default).Parse()
+	a, err := flags.NewParser(&GenVarOpts, flags.Default).Parse()
 	if err != nil {
 		if e, ok := err.(*flags.Error); ok {
 			switch e.Type {
@@ -171,14 +171,14 @@ func main() {
 			}
 		}
 	}
-	fmt.Printf("opts : %v\na %v\n", Opts, a)
+	fmt.Printf("opts : %v\na %v\n", GenVarOpts, a)
 
-	if Opts.MemProfile != "" {
-		f, err := os.Create(Opts.MemProfile)
+	if GenVarOpts.MemProfile != "" {
+		f, err := os.Create(GenVarOpts.MemProfile)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("enable memprofiling, write to '%v'\n", Opts.MemProfile)
+		fmt.Printf("enable memprofiling, write to '%v'\n", GenVarOpts.MemProfile)
 		defer func() {
 			pprof.WriteHeapProfile(f)
 			f.Close()
@@ -186,30 +186,30 @@ func main() {
 		}()
 	}
 
-	if Opts.CpuProfile != "" {
-		f, err := os.Create(Opts.CpuProfile)
+	if GenVarOpts.CpuProfile != "" {
+		f, err := os.Create(GenVarOpts.CpuProfile)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("enable cpuprofiling, write to '%v'\n", Opts.CpuProfile)
+		fmt.Printf("enable cpuprofiling, write to '%v'\n", GenVarOpts.CpuProfile)
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
 
-	consonants = getMap(Opts.InConsonantFile)
-	vowels = getMap(Opts.InVowelFile)
+	consonants = getMap(GenVarOpts.InConsonantFile)
+	vowels = getMap(GenVarOpts.InVowelFile)
 	fmt.Printf("consonants: %d\n%s\n", len(consonants), getOrderedMapString(consonants))
 	fmt.Printf("vowels: %d\n%s\n", len(vowels), getOrderedMapString(vowels))
 
-	wmap := getWordsMap(Opts.InWordsFile)
+	wmap := getWordsMap(GenVarOpts.InWordsFile)
 	fmt.Printf("map size: %d\ncontent:\n%s\n", wmap.Size(), wmap)
 
 	// set the base group according to the required settings
 	baseGroup := cvc.NewGroupSetLimitFreq(
-		Opts.MaxSets,
-		Opts.MaxWords,
-		Opts.FreqCutoff,
-		Opts.FreqWordsPerLineAboveCutoff)
+		GenVarOpts.MaxSets,
+		GenVarOpts.MaxWords,
+		GenVarOpts.FreqCutoff,
+		GenVarOpts.FreqWordsPerLineAboveCutoff)
 
 	// start time measuring
 	t0 := time.Now()
@@ -224,15 +224,15 @@ func main() {
 			case <-startedWorkers:
 				// println("startedWorkers")
 				count++
-				if count > Opts.maxWorkers {
-					Opts.maxWorkers = count
+				if count > GenVarOpts.maxWorkers {
+					GenVarOpts.maxWorkers = count
 				}
-				Opts.currentWorkers = count
+				GenVarOpts.currentWorkers = count
 				i = 0
 			case <-stoppedWorkers:
 				// println("stoppedWorkers")
 				count--
-				Opts.currentWorkers = count
+				GenVarOpts.currentWorkers = count
 				i = 0
 			case <-time.After(1 * time.Second):
 				if count > 0 {
@@ -263,9 +263,9 @@ func main() {
 				} else if strings.HasPrefix(s, "status:") {
 					fmt.Printf("%s", s)
 				} else {
-					Opts.countGroups++
-					fmt.Printf("%d\n%s", Opts.countGroups, s)
-					if Opts.countGroups == Opts.MaxGroups {
+					GenVarOpts.countGroups++
+					fmt.Printf("%d\n%s", GenVarOpts.countGroups, s)
+					if GenVarOpts.countGroups == GenVarOpts.MaxGroups {
 						close(msgs)
 						close(collectingDone)
 						return
@@ -274,14 +274,14 @@ func main() {
 			default:
 				time.Sleep(1 * time.Second)
 				fmt.Printf("%s passed\n", time.Now().Sub(t0))
-				if Opts.finishSignal {
+				if GenVarOpts.finishSignal {
 					// fmt.Println("finishSignal issued, exiting")
 					close(msgs)
 					return
 				}
-				if Opts.DebugEnabled {
+				if GenVarOpts.DebugEnabled {
 					fmt.Printf("current workers %d, max workers %d\n",
-						Opts.currentWorkers, Opts.maxWorkers)
+						GenVarOpts.currentWorkers, GenVarOpts.maxWorkers)
 				}
 			}
 		}
@@ -289,16 +289,16 @@ func main() {
 
 	go findGroups(baseGroup, wmap)
 
-	dur := time.Duration(Opts.TimeToRun)
+	dur := time.Duration(GenVarOpts.TimeToRun)
 	select {
 	case <-collectingDone:
 		fmt.Printf("required results collected after %s\n", time.Now().Sub(t0))
 	case <-time.After(dur * time.Second):
 		fmt.Printf("stopped after %s\n", time.Now().Sub(t0))
 	}
-	Opts.finishSignal = true
+	GenVarOpts.finishSignal = true
 
-	fmt.Printf("waiting for waitForWorkers, %d workers\n", Opts.currentWorkers)
+	fmt.Printf("waiting for waitForWorkers, %d workers\n", GenVarOpts.currentWorkers)
 	<-waitForWorkers
 	fmt.Printf("exiting... after %s\n", time.Now().Sub(t0))
 
