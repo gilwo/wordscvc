@@ -103,30 +103,35 @@ var startedWorkers = make(chan struct{}, 100)
 var stoppedWorkers = make(chan struct{}, 100)
 var maxSize int = 0
 
-func findGroups(group *cvc.GroupSet, wordmap *cvc.WordMap) {
+type findArg struct {
+	group *cvc.GroupSet
+	wordmap *cvc.WordMap
+}
+
+func findGroups(arg findArg) {
 	defer func() {
 		if fail := recover(); fail != nil {
 			// fmt.Printf("recovered from %s\n", fail)
 		}
 		stoppedWorkers <- struct{}{}
-		group = nil
-		wordmap = nil
+		arg.group = nil
+		arg.wordmap = nil
 		// runtime.GC()
 		return
 	}()
 
 	startedWorkers <- struct{}{}
-	zmap := *wordmap.GetCm()
-	if !group.Checkifavailable(wordmap) {
+	zmap := *arg.wordmap.GetCm()
+	if !arg.group.Checkifavailable(arg.wordmap) {
 		return
 	}
-	if float64(group.CurrentSize())/float64(group.MaxSize()) > float64(0.9) {
+	if float64(arg.group.CurrentSize())/float64(arg.group.MaxSize()) > float64(0.9) {
 		s := fmt.Sprintf("status: reached depth %d of %d\n",
-			int(group.CurrentSize()), int(group.MaxSize()))
+			int(arg.group.CurrentSize()), int(arg.group.MaxSize()))
 		msgs <- s
 	}
-	if group.CurrentSize() > maxSize {
-		msgs <- "depth: " + strconv.Itoa(group.CurrentSize())
+	if arg.group.CurrentSize() > maxSize {
+		msgs <- "depth: " + strconv.Itoa(arg.group.CurrentSize())
 	}
 
 	for k := range zmap {
@@ -139,17 +144,17 @@ func findGroups(group *cvc.GroupSet, wordmap *cvc.WordMap) {
 			// fmt.Printf("groups count %d reached max groups %d", GenVarOpts.countGroups, GenVarOpts.MaxGroups)
 			break
 		}
-		if added, full := group.AddWord(k); full == true {
-			msg := fmt.Sprintf("group completed\n%s\n", group.StringWithFreq())
+		if added, full := arg.group.AddWord(k); full == true {
+			msg := fmt.Sprintf("group completed\n%s\n", arg.group.StringWithFreq())
 			if GenVarOpts.DebugEnabled {
-				msg += group.DumpGroup() + "\n"
+				msg += arg.group.DumpGroup() + "\n"
 			}
 			// fmt.Println(msg)
 			msgs <- msg
 			break
 		} else if added {
-			wordmap.DelWord(k)
-			go findGroups(group.CopyGroupSet(), wordmap.CopyWordMap())
+			arg.wordmap.DelWord(k)
+			go findGroups(findArg{arg.group.CopyGroupSet(), arg.wordmap.CopyWordMap()})
 		}
 	}
 }
@@ -287,7 +292,7 @@ func main() {
 		}
 	}()
 
-	go findGroups(baseGroup, wmap)
+	go findGroups(findArg{baseGroup, wmap})
 
 	dur := time.Duration(GenVarOpts.TimeToRun)
 	select {
