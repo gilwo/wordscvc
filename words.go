@@ -13,32 +13,36 @@ import (
 	"time"
 
 	"github.com/gilwo/wordscvc/cvc"
+	"github.com/gilwo/workqueue/pool"
 	"github.com/jessevdk/go-flags"
 )
 
 type flagOpts struct {
 	// flag able vars
-	MaxGroups                   int    `short:"G" description:"1  number of result groups to generate" default:"20"`
-	MaxSets                     int    `short:"S" description:"2  number of sets per group" default:"15"`
-	MaxWords                    int    `short:"W" description:"3  number of words per set" default:"10"`
-	FreqCutoff                  int    `short:"f" description:"4  frequency cutoff threshold for words, lower is more common" default:"25"`
-	FreqWordsPerLineAboveCutoff int    `short:"a" description:"5  how many words to be above cutoff threshold per line" default:"3"`
-	VowelLimit                  int    `long:"vowel" description:"6  how many time each vowel repeat per set" hidden:"1"`// 2
+	MaxGroups                   int     `short:"G" description:"1  number of result groups to generate" default:"20"`
+	MaxSets                     int     `short:"S" description:"2  number of sets per group" default:"15"`
+	MaxWords                    int     `short:"W" description:"3  number of words per set" default:"10"`
+	FreqCutoff                  int     `short:"f" description:"4  frequency cutoff threshold for words, lower is more common" default:"25"`
+	FreqWordsPerLineAboveCutoff int     `short:"a" description:"5  how many words to be above cutoff threshold per line" default:"3"`
+	VowelLimit                  int     `long:"vowel" description:"6  how many time each vowel repeat per set" hidden:"1"`// 2
 
-	InConsonantFile             string `short:"C" description:"7  input file name for consonants to use" optional:"1" default:"consonants.txt"`
-	InVowelFile                 string `short:"V" description:"8  input file name for vowels to use" optional:"1" default:"vowels.txt"`
-	InWordsFile                 string `short:"i" description:"9  input file name for words list to use for creating the lines groups results" optional:"1" default:"words_list.txt"`
+	InConsonantFile             string  `short:"C" description:"7  input file name for consonants to use" optional:"1" default:"consonants.txt"`
+	InVowelFile                 string  `short:"V" description:"8  input file name for vowels to use" optional:"1" default:"vowels.txt"`
+	InWordsFile                 string  `short:"i" description:"9  input file name for words list to use for creating the lines groups results" optional:"1" default:"words_list.txt"`
 
-	FilterFile                  string `short:"F" description:"10 input file name for filtered words"`
-	OutResultFile               string `short:"o" description:"11 output file for generated results" default:"words_result.txt" default-mask:"-"`
+	FilterFile                  string  `short:"F" description:"10 input file name for filtered words"`
+	OutResultFile               string  `short:"o" description:"11 output file for generated results" default:"words_result.txt" default-mask:"-"`
 
-	TimeToRun                   int    `short:"t" description:"12 how much time to run (in seconds)" default:"30"`
+	TimeToRun                   int     `short:"t" description:"12 how much time to run (in seconds)" default:"30"`
 
-	CpuProfile                  string `short:"c" description:"13 enable cpu profiling and save to file"`
-	MemProfile                  string `short:"m" description:"14 enable memory profiling and save to file"`
+	CpuProfile                  string  `short:"c" description:"13 enable cpu profiling and save to file"`
+	MemProfile                  string  `short:"m" description:"14 enable memory profiling and save to file"`
 
-	DebugEnabled                bool   `short:"d" description:"15 enable debugging information"`
+	DebugEnabled                bool    `short:"d" description:"15 enable debugging information"`
 	Verbose                     [2]bool `short:"v" description:"16 show verbose information" choice:"2"`
+
+	UsePool                     bool    `short:"p" description:"17 enable using the worker pool logic" hidden:"1"`
+
 }
 
 func (fo flagOpts) String() string {
@@ -59,6 +63,8 @@ func (fo flagOpts) String() string {
 		"\n"+
 		"\ttime to run: '%v'\n"+
 		"\n"+
+		"\tuse pool: '%v'\n"+
+		"\n"+
 		"\tcpu profile file: '%v'\n"+
 		"\tmemory profile file: '%v'\n"+
 		"\tdebug enabled: '%v'\n"+
@@ -75,6 +81,7 @@ func (fo flagOpts) String() string {
 		fo.FilterFile,
 		fo.OutResultFile,
 		fo.TimeToRun,
+		fo.UsePool,
 		fo.CpuProfile,
 		fo.MemProfile,
 		fo.DebugEnabled,
@@ -108,7 +115,9 @@ type findArg struct {
 	wordmap *cvc.WordMap
 }
 
-func findGroups(arg findArg) {
+func findGroups(iarg interface{}, stop workerpool.CheckStop) (none interface{}) {
+
+	arg, _ := iarg.(findArg)
 	defer func() {
 		if fail := recover(); fail != nil {
 			// fmt.Printf("recovered from %s\n", fail)
@@ -154,7 +163,10 @@ func findGroups(arg findArg) {
 			break
 		} else if added {
 			arg.wordmap.DelWord(k)
-			go findGroups(findArg{arg.group.CopyGroupSet(), arg.wordmap.CopyWordMap()})
+			if !GenVarOpts.UsePool {
+				go findGroups(findArg{arg.group.CopyGroupSet(), arg.wordmap.CopyWordMap()}, nil)
+			} else {
+			}
 		}
 	}
 }
@@ -177,6 +189,9 @@ func main() {
 		}
 	}
 	fmt.Printf("opts : %v\na %v\n", GenVarOpts, a)
+
+	if GenVarOpts.UsePool {
+	}
 
 	if GenVarOpts.MemProfile != "" {
 		f, err := os.Create(GenVarOpts.MemProfile)
@@ -292,7 +307,10 @@ func main() {
 		}
 	}()
 
-	go findGroups(findArg{baseGroup, wmap})
+	if GenVarOpts.UsePool {
+	} else {
+		go findGroups(findArg{baseGroup, wmap}, nil)
+	}
 
 	dur := time.Duration(GenVarOpts.TimeToRun)
 	select {
@@ -302,6 +320,9 @@ func main() {
 		fmt.Printf("stopped after %s\n", time.Now().Sub(t0))
 	}
 	GenVarOpts.finishSignal = true
+
+	if GenVarOpts.UsePool {
+	}
 
 	fmt.Printf("waiting for waitForWorkers, %d workers\n", GenVarOpts.currentWorkers)
 	<-waitForWorkers
