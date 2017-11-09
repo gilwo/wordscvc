@@ -42,6 +42,7 @@ type flagOpts struct {
 	Verbose                     [2]bool `short:"v" description:"16 show verbose information" choice:"2"`
 
 	UsePool                     bool    `short:"p" description:"17 enable using the worker pool logic" hidden:"1"`
+	Workers                     uint    `short:"w" description:"18 how many workers to use" default:"30" hidden:"1"`
 
 }
 
@@ -63,6 +64,7 @@ func (fo flagOpts) String() string {
 		"\n"+
 		"\ttime to run: '%v'\n"+
 		"\n"+
+		"\tworkers: '%v'\n"+
 		"\tuse pool: '%v'\n"+
 		"\n"+
 		"\tcpu profile file: '%v'\n"+
@@ -81,6 +83,7 @@ func (fo flagOpts) String() string {
 		fo.FilterFile,
 		fo.OutResultFile,
 		fo.TimeToRun,
+		fo.Workers,
 		fo.UsePool,
 		fo.CpuProfile,
 		fo.MemProfile,
@@ -100,6 +103,7 @@ type varOpts struct {
 }
 
 var GenVarOpts varOpts
+var pool *workerpool.WPool
 
 var consonants, vowels map[string]int
 
@@ -166,9 +170,17 @@ func findGroups(iarg interface{}, stop workerpool.CheckStop) (none interface{}) 
 			if !GenVarOpts.UsePool {
 				go findGroups(findArg{arg.group.CopyGroupSet(), arg.wordmap.CopyWordMap()}, nil)
 			} else {
+				newgroup := arg.group.CopyGroupSet()
+				newwordmap := arg.wordmap.CopyWordMap()
+				go func () {
+					_, err := pool.NewJobQueue(findGroups, findArg{newgroup, newwordmap})
+					if err !=nil {
+					}
+				}()
 			}
 		}
 	}
+	return
 }
 
 func main() {
@@ -191,6 +203,18 @@ func main() {
 	fmt.Printf("opts : %v\na %v\n", GenVarOpts, a)
 
 	if GenVarOpts.UsePool {
+		if GenVarOpts.DebugEnabled {
+			workerpool.WorkerPoolSetLogLevel(workerpool.DebugLevel)
+		}
+		if pool, err = workerpool.NewWPool(GenVarOpts.Workers); err != nil {
+			fmt.Printf("failed to create pool %v\n", err)
+			os.Exit(1)
+		}
+
+		if _, err = pool.StartDispatcher(); err != nil {
+			fmt.Printf("failed to start pool dispatcher %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	if GenVarOpts.MemProfile != "" {
@@ -308,6 +332,7 @@ func main() {
 	}()
 
 	if GenVarOpts.UsePool {
+		pool.NewJobQueue(findGroups, findArg{baseGroup, wmap})
 	} else {
 		go findGroups(findArg{baseGroup, wmap}, nil)
 	}
@@ -322,6 +347,8 @@ func main() {
 	GenVarOpts.finishSignal = true
 
 	if GenVarOpts.UsePool {
+		pool.StopDispatcher(nil)
+		pool.Dispose()
 	}
 
 	fmt.Printf("waiting for waitForWorkers, %d workers\n", GenVarOpts.currentWorkers)
