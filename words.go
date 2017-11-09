@@ -185,6 +185,8 @@ func findGroups(iarg interface{}, stop workerpool.CheckStop) (none interface{}) 
 
 func main() {
 
+	var out string
+
 	a, err := flags.NewParser(&GenVarOpts, flags.Default).Parse()
 	if err != nil {
 		if e, ok := err.(*flags.Error); ok {
@@ -308,6 +310,7 @@ func main() {
 					fmt.Printf("%s", s)
 				} else {
 					GenVarOpts.countGroups++
+					out += s
 					fmt.Printf("%d\n%s", GenVarOpts.countGroups, s)
 					if GenVarOpts.countGroups == GenVarOpts.MaxGroups {
 						close(msgs)
@@ -355,6 +358,7 @@ func main() {
 	<-waitForWorkers
 	fmt.Printf("exiting... after %s\n", time.Now().Sub(t0))
 
+	fmt.Println(out)
 }
 
 func getOrderedMapString(m map[string]int) string {
