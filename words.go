@@ -147,15 +147,16 @@ func findGroups(iarg interface{}, stop workerpool.CheckStop) (none interface{}) 
 		msgs <- "depth: " + strconv.Itoa(arg.group.CurrentSize())
 	}
 
+Loop:
 	for k := range zmap {
 
 		if GenVarOpts.finishSignal {
 			// fmt.Println("finishSignal issued, exiting")
-			break
+			break Loop
 		}
 		if GenVarOpts.countGroups >= GenVarOpts.MaxGroups {
 			// fmt.Printf("groups count %d reached max groups %d", GenVarOpts.countGroups, GenVarOpts.MaxGroups)
-			break
+			break Loop
 		}
 		if added, full := arg.group.AddWord(k); full == true {
 			msg := fmt.Sprintf("group completed\n%s\n", arg.group.StringWithFreq())
@@ -164,7 +165,7 @@ func findGroups(iarg interface{}, stop workerpool.CheckStop) (none interface{}) 
 			}
 			// fmt.Println(msg)
 			msgs <- msg
-			break
+			break Loop
 		} else if added {
 			arg.wordmap.DelWord(k)
 			if !GenVarOpts.UsePool {
