@@ -39,7 +39,7 @@ type flagOpts struct {
 	MemProfile                  string  `short:"m" description:"14 enable memory profiling and save to file"`
 
 	DebugEnabled                bool    `short:"d" description:"15 enable debugging information"`
-	Verbose                     [2]bool `short:"v" description:"16 show verbose information" choice:"2"`
+	Verbose                     []bool  `short:"v" description:"16 show verbose information"`
 
 	UsePool                     bool    `short:"p" description:"17 enable using the worker pool logic" hidden:"1"`
 	Workers                     uint    `short:"w" description:"18 how many workers to use" default:"30" hidden:"1"`
@@ -124,7 +124,7 @@ func findGroups(iarg interface{}, stop workerpool.CheckStop) (none interface{}) 
 	arg, _ := iarg.(findArg)
 	defer func() {
 		if fail := recover(); fail != nil {
-			// fmt.Printf("recovered from %s\n", fail)
+			verbose("recovered from %s\n", fail)
 		}
 		stoppedWorkers <- struct{}{}
 		arg.group = nil
@@ -151,11 +151,11 @@ Loop:
 	for k := range zmap {
 
 		if GenVarOpts.finishSignal {
-			// fmt.Println("finishSignal issued, exiting")
+			 info("finishSignal issued, exiting\n")
 			break Loop
 		}
 		if GenVarOpts.countGroups >= GenVarOpts.MaxGroups {
-			// fmt.Printf("groups count %d reached max groups %d", GenVarOpts.countGroups, GenVarOpts.MaxGroups)
+			info("groups count %d reached max groups %d", GenVarOpts.countGroups, GenVarOpts.MaxGroups)
 			break Loop
 		}
 		if added, full := arg.group.AddWord(k); full == true {
@@ -163,7 +163,6 @@ Loop:
 			if GenVarOpts.DebugEnabled {
 				msg += arg.group.DumpGroup() + "\n"
 			}
-			// fmt.Println(msg)
 			msgs <- msg
 			break Loop
 		} else if added {
@@ -176,7 +175,9 @@ Loop:
 				go func () {
 					_, err := pool.NewJobQueue(findGroups, findArg{newgroup, newwordmap})
 					if err !=nil {
+						info("erorr queing job %v\n", err)
 					}
+					trace("%v\n", pool.PoolStats())
 				}()
 			}
 		}
@@ -193,17 +194,14 @@ func main() {
 		if e, ok := err.(*flags.Error); ok {
 			switch e.Type {
 			case flags.ErrHelp:
-				//fmt.Println("help requested, existing")
 				os.Exit(0)
-			case flags.ErrInvalidChoice:
-				fmt.Println("-v or -vv")
-				os.Exit(1)
 			default:
 				fmt.Printf("error parsing opts: %v\n", e.Type)
+				os.Exit(1)
 			}
 		}
 	}
-	fmt.Printf("opts : %v\na %v\n", GenVarOpts, a)
+	info("opts:\n%v\na:\n%v\n", GenVarOpts, a)
 
 	if GenVarOpts.UsePool {
 		if GenVarOpts.DebugEnabled {
@@ -225,7 +223,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("enable memprofiling, write to '%v'\n", GenVarOpts.MemProfile)
+		info("enable memprofiling, write to '%v'\n", GenVarOpts.MemProfile)
 		defer func() {
 			pprof.WriteHeapProfile(f)
 			f.Close()
@@ -238,18 +236,18 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("enable cpuprofiling, write to '%v'\n", GenVarOpts.CpuProfile)
+		info("enable cpuprofiling, write to '%v'\n", GenVarOpts.CpuProfile)
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
 
 	consonants = getMap(GenVarOpts.InConsonantFile)
 	vowels = getMap(GenVarOpts.InVowelFile)
-	fmt.Printf("consonants: %d\n%s\n", len(consonants), getOrderedMapString(consonants))
-	fmt.Printf("vowels: %d\n%s\n", len(vowels), getOrderedMapString(vowels))
+	verbose("consonants: %d\n%s\n", len(consonants), getOrderedMapString(consonants))
+	verbose("vowels: %d\n%s\n", len(vowels), getOrderedMapString(vowels))
 
 	wmap := getWordsMap(GenVarOpts.InWordsFile)
-	fmt.Printf("map size: %d\ncontent:\n%s\n", wmap.Size(), wmap)
+	verbose("map size: %d\ncontent:\n%s\n", wmap.Size(), wmap)
 
 	// set the base group according to the required settings
 	baseGroup := cvc.NewGroupSetLimitFreq(
@@ -266,10 +264,10 @@ func main() {
 		count := 0
 		i := 0
 		for {
-			// fmt.Println("going to wait")
+			 verbose("going to wait\n")
 			select {
 			case <-startedWorkers:
-				// println("startedWorkers")
+				trace("startedWorkers")
 				count++
 				if count > GenVarOpts.maxWorkers {
 					GenVarOpts.maxWorkers = count
@@ -282,11 +280,14 @@ func main() {
 				GenVarOpts.currentWorkers = count
 				i = 0
 			case <-time.After(1 * time.Second):
+				if GenVarOpts.UsePool {
+					trace("%v\n", pool.PoolStats())
+				}
 				if count > 0 {
-					fmt.Printf("there are still %d active go routines\n", count)
-					// fmt.Printf("count = %d and i = %d", count, i)
+					info("there are still %d active workers\n", count)
+					trace("count = %d and i = %d", count, i)
 				} else {
-					fmt.Printf("count = 0 and i = %d\n", i)
+					verbose("count = 0 and i = %d\n", i)
 					i++
 					if i == 3 {
 						waitForWorkers <- true
@@ -305,14 +306,14 @@ func main() {
 					size, _ := strconv.Atoi(s[len("depth: "):])
 					if size > maxSize {
 						maxSize = size
-						fmt.Printf("max depth : %d\n", maxSize)
+						verbose("max depth : %d\n", maxSize)
 					}
 				} else if strings.HasPrefix(s, "status:") {
-					fmt.Printf("%s", s)
+					info("%s", s)
 				} else {
 					GenVarOpts.countGroups++
 					out += s
-					fmt.Printf("%d\n%s", GenVarOpts.countGroups, s)
+					info("%d\n%s", GenVarOpts.countGroups, s)
 					if GenVarOpts.countGroups == GenVarOpts.MaxGroups {
 						close(msgs)
 						close(collectingDone)
@@ -321,16 +322,15 @@ func main() {
 				}
 			default:
 				time.Sleep(1 * time.Second)
-				fmt.Printf("%s passed\n", time.Now().Sub(t0))
+				verbose("%s passed\n", time.Now().Sub(t0))
+				trace("%v\n", pool.PoolStats())
 				if GenVarOpts.finishSignal {
-					// fmt.Println("finishSignal issued, exiting")
+					info("finishSignal issued, exiting")
 					close(msgs)
 					return
 				}
-				if GenVarOpts.DebugEnabled {
-					fmt.Printf("current workers %d, max workers %d\n",
-						GenVarOpts.currentWorkers, GenVarOpts.maxWorkers)
-				}
+				debug("current workers %d, max workers %d\n",
+					GenVarOpts.currentWorkers, GenVarOpts.maxWorkers)
 			}
 		}
 	}()
@@ -344,9 +344,9 @@ func main() {
 	dur := time.Duration(GenVarOpts.TimeToRun)
 	select {
 	case <-collectingDone:
-		fmt.Printf("required results collected after %s\n", time.Now().Sub(t0))
+		info("required results collected after %s\n", time.Now().Sub(t0))
 	case <-time.After(dur * time.Second):
-		fmt.Printf("stopped after %s\n", time.Now().Sub(t0))
+		info("stopped after %s\n", time.Now().Sub(t0))
 	}
 	GenVarOpts.finishSignal = true
 
@@ -355,7 +355,7 @@ func main() {
 		pool.Dispose()
 	}
 
-	fmt.Printf("waiting for waitForWorkers, %d workers\n", GenVarOpts.currentWorkers)
+	info("waiting for waitForWorkers, %d workers\n", GenVarOpts.currentWorkers)
 	<-waitForWorkers
 	fmt.Printf("exiting... after %s\n", time.Now().Sub(t0))
 
@@ -451,9 +451,10 @@ func getWordsFromFile(fname string) []WF {
 	return resList
 }
 
-// var consonants = map[string]int{
-// 	"B": 0, "G": 0, "D": 0, "V": 0, "Z": 0, "X": 0, "T": 0,
-// 	"J": 0, "K": 0, "L": 0, "M": 0, "N": 0, "S": 0, "P": 0, "F": 0, "TZ": 0,
-// 	"R": 0, "SH": 0, "Q": 0, "W": 0, "H": 0}
-// var vowels = map[string]int{
-// 	"A": 0, "E": 0, "I": 0, "O": 0, "U": 0}
+func debug(f string, v ...interface{}) { if GenVarOpts.DebugEnabled { fmt.Printf("debug: " + f, v...) } }
+
+func info(f string, v ...interface{}) { if len(GenVarOpts.Verbose) >= 1 && GenVarOpts.Verbose[0] { fmt.Printf("info: "+f, v...) } }
+
+func verbose(f string, v ...interface{}) { if len(GenVarOpts.Verbose) >= 2 && GenVarOpts.Verbose[1] { fmt.Printf("verbose" + f, v...) } }
+
+func trace(f string, v ...interface{}) { if len(GenVarOpts.Verbose) >= 3 && GenVarOpts.Verbose[2] { fmt.Printf("trace" + f, v...) } }
