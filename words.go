@@ -170,15 +170,12 @@ Loop:
 			if !GenVarOpts.UsePool {
 				go findGroups(findArg{arg.group.CopyGroupSet(), arg.wordmap.CopyWordMap()}, nil)
 			} else {
-				newgroup := arg.group.CopyGroupSet()
-				newwordmap := arg.wordmap.CopyWordMap()
-				go func () {
-					_, err := pool.NewJobQueue(findGroups, findArg{newgroup, newwordmap})
-					if err !=nil {
-						info("erorr queing job %v\n", err)
-					}
-					trace("%v\n", pool.PoolStats())
-				}()
+				_, err := pool.NewJobQueue(findGroups,
+					findArg{arg.group.CopyGroupSet(), arg.wordmap.CopyWordMap()})
+				if err !=nil {
+					info("error queuing job %v\n", err)
+				}
+				trace("%v\n", pool.PoolStats())
 			}
 		}
 	}
