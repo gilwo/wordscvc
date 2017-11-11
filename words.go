@@ -42,7 +42,8 @@ type flagOpts struct {
 	Verbose                     []bool  `short:"v" description:"16 show verbose information"`
 
 	UsePool                     bool    `short:"p" description:"17 enable using the worker pool logic" hidden:"1"`
-	Workers                     uint    `short:"w" description:"18 how many workers to use" default:"30" hidden:"1"`
+	UseJobDispose               bool    `short:"D" description:"18 enable using the worker job dispose logic" hidden:"1"`
+	Workers                     uint    `short:"w" description:"19 how many workers to use" default:"30" hidden:"1"`
 
 }
 
@@ -119,9 +120,27 @@ type findArg struct {
 	wordmap *cvc.WordMap
 }
 
-func findGroups(iarg interface{}, stop workerpool.CheckStop) (none interface{}) {
+func findGroups(iarg interface{}, job *workerpool.WorkerJob, stop workerpool.CheckStop) (none interface{}) {
 
 	arg, _ := iarg.(findArg)
+
+	if GenVarOpts.UsePool && GenVarOpts.UseJobDispose {
+		defer func() {
+			go func() {
+				out:
+				for {
+					select {
+					case <-time.After(10*time.Millisecond):
+						if job.JobStatus() == workerpool.Jfinished {
+							job.JobDispose()
+							break out
+						}
+					}
+				}
+			}()
+		}()
+	}
+
 	defer func() {
 		if fail := recover(); fail != nil {
 			verbose("recovered from %s\n", fail)
@@ -168,10 +187,17 @@ Loop:
 		} else if added {
 			arg.wordmap.DelWord(k)
 			if !GenVarOpts.UsePool {
-				go findGroups(findArg{arg.group.CopyGroupSet(), arg.wordmap.CopyWordMap()}, nil)
+				go findGroups(
+					findArg{
+						arg.group.CopyGroupSet(),
+						arg.wordmap.CopyWordMap(),
+					}, nil, nil)
 			} else {
 				_, err := pool.NewJobQueue(findGroups,
-					findArg{arg.group.CopyGroupSet(), arg.wordmap.CopyWordMap()})
+					findArg{
+						arg.group.CopyGroupSet(),
+						arg.wordmap.CopyWordMap(),
+					})
 				if err !=nil {
 					info("error queuing job %v\n", err)
 				}
@@ -320,7 +346,9 @@ func main() {
 			default:
 				time.Sleep(1 * time.Second)
 				verbose("%s passed\n", time.Now().Sub(t0))
-				trace("%v\n", pool.PoolStats())
+				if GenVarOpts.UsePool {
+					info("%v\n", pool.PoolStats())
+				}
 				if GenVarOpts.finishSignal {
 					info("finishSignal issued, exiting")
 					close(msgs)
@@ -335,7 +363,7 @@ func main() {
 	if GenVarOpts.UsePool {
 		pool.NewJobQueue(findGroups, findArg{baseGroup, wmap})
 	} else {
-		go findGroups(findArg{baseGroup, wmap}, nil)
+		go findGroups(findArg{baseGroup, wmap}, nil, nil)
 	}
 
 	dur := time.Duration(GenVarOpts.TimeToRun)
