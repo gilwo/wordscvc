@@ -114,6 +114,8 @@ var msgs = make(chan string, 100)
 var startedWorkers = make(chan struct{}, 100)
 var stoppedWorkers = make(chan struct{}, 100)
 var maxSize int = 0
+var disposeChan = make (chan *workerpool.WorkerJob, 1000)
+var disposeDone = make (chan bool)
 
 type findArg struct {
 	group *cvc.GroupSet
@@ -121,25 +123,7 @@ type findArg struct {
 }
 
 func findGroups(iarg interface{}, job *workerpool.WorkerJob, stop workerpool.CheckStop) (none interface{}) {
-
 	arg, _ := iarg.(findArg)
-
-	if GenVarOpts.UsePool && GenVarOpts.UseJobDispose {
-		defer func() {
-			go func() {
-				out:
-				for {
-					select {
-					case <-time.After(10*time.Millisecond):
-						if job.JobStatus() == workerpool.Jfinished {
-							job.JobDispose()
-							break out
-						}
-					}
-				}
-			}()
-		}()
-	}
 
 	defer func() {
 		if fail := recover(); fail != nil {
@@ -148,6 +132,12 @@ func findGroups(iarg interface{}, job *workerpool.WorkerJob, stop workerpool.Che
 		stoppedWorkers <- struct{}{}
 		arg.group = nil
 		arg.wordmap = nil
+		if GenVarOpts.UsePool && GenVarOpts.UseJobDispose {
+			if !GenVarOpts.finishSignal {
+				disposeChan <- job
+			}
+		}
+
 		// runtime.GC()
 		return
 	}()
@@ -282,6 +272,22 @@ func main() {
 	// start time measuring
 	t0 := time.Now()
 
+	if GenVarOpts.UsePool && GenVarOpts.UseJobDispose {
+		// job disposer
+		go func() {
+			for j := range disposeChan {
+				if j.JobStatus() != workerpool.Jfinished {
+					if !GenVarOpts.finishSignal {
+						disposeChan <- j
+					}
+				} else {
+					j.JobDispose()
+				}
+			}
+			close(disposeDone)
+		}()
+	}
+
 	// wait for all goroutines to finish
 	go func() {
 		count := 0
@@ -375,9 +381,20 @@ func main() {
 	}
 	GenVarOpts.finishSignal = true
 
+	// pool cleanup
 	if GenVarOpts.UsePool {
-		pool.StopDispatcher(nil)
+		ch := make(chan struct{})
+		if GenVarOpts.UseJobDispose {
+			close(disposeChan)
+		}
+		pool.StopDispatcher(func(){
+			select {
+				case <-disposeDone:
+			}
+			close(ch)
+		})
 		pool.Dispose()
+		<-ch
 	}
 
 	info("waiting for waitForWorkers, %d workers\n", GenVarOpts.currentWorkers)
