@@ -105,6 +105,7 @@ type varOpts struct {
 
 var GenVarOpts varOpts
 var pool *workerpool.WPool
+var wmapImproved *cvc.WordMapImproved
 
 var consonants, vowels map[string]int
 
@@ -119,11 +120,12 @@ var disposeDone = make (chan bool)
 
 type findArg struct {
 	group *cvc.GroupSet
-	wordmap *cvc.WordMap
+	bwords *cvc.WordsBArr
 }
 
 func findGroups(iarg interface{}, job *workerpool.WorkerJob, stop workerpool.CheckStop) (none interface{}) {
 	arg, _ := iarg.(findArg)
+	//fmt.Printf("_")
 
 	defer func() {
 		if fail := recover(); fail != nil {
@@ -131,7 +133,7 @@ func findGroups(iarg interface{}, job *workerpool.WorkerJob, stop workerpool.Che
 		}
 		stoppedWorkers <- struct{}{}
 		arg.group = nil
-		arg.wordmap = nil
+		//arg.wordmap = nil
 		if GenVarOpts.UsePool && GenVarOpts.UseJobDispose {
 			if !GenVarOpts.finishSignal {
 				disposeChan <- job
@@ -143,21 +145,23 @@ func findGroups(iarg interface{}, job *workerpool.WorkerJob, stop workerpool.Che
 	}()
 
 	startedWorkers <- struct{}{}
-	zmap := *arg.wordmap.GetCm()
-	if !arg.group.Checkifavailable(arg.wordmap) {
+	if !arg.bwords.Checkifavailable(arg.group, wmapImproved) {
 		return
 	}
 	if float64(arg.group.CurrentSize())/float64(arg.group.MaxSize()) > float64(0.9) {
 		s := fmt.Sprintf("status: reached depth %d of %d\n",
 			int(arg.group.CurrentSize()), int(arg.group.MaxSize()))
 		msgs <- s
+		verbose(arg.group.String())
 	}
 	if arg.group.CurrentSize() > maxSize {
 		msgs <- "depth: " + strconv.Itoa(arg.group.CurrentSize())
 	}
 
+	//zz := &cvc.WordsBArr{}
+	zz := arg.bwords.CopyWordsB()
 Loop:
-	for k := range zmap {
+	for _, k := range *arg.bwords {
 
 		if GenVarOpts.finishSignal {
 			 info("finishSignal issued, exiting\n")
@@ -167,34 +171,42 @@ Loop:
 			info("groups count %d reached max groups %d", GenVarOpts.countGroups, GenVarOpts.MaxGroups)
 			break Loop
 		}
-		if added, full := arg.group.AddWord(k); full == true {
+		if added, full := arg.group.AddWord(wmapImproved.GetWord(k)); full == true {
 			msg := fmt.Sprintf("group completed\n%s\n", arg.group.StringWithFreq())
 			if GenVarOpts.DebugEnabled {
 				msg += arg.group.DumpGroup() + "\n"
 			}
 			msgs <- msg
 			break Loop
+			//fmt.Printf("!")
 		} else if added {
-			arg.wordmap.DelWord(k)
+			//arg.bwords.DelWord(k, arg.wordmap)
+			//*arg.bwords = append((*arg.bwords)[:i], (*arg.bwords)[i+1:]...)
+			//*zz = append(*zz, (*arg.bwords)[:i]...)
+			//*zz = append(*zz, (*arg.bwords)[i+1:]...)
+			zz.DelWord(wmapImproved.GetWord(k), wmapImproved)
+
 			if !GenVarOpts.UsePool {
 				go findGroups(
 					findArg{
 						arg.group.CopyGroupSet(),
-						arg.wordmap.CopyWordMap(),
+						zz,
 					}, nil, nil)
 			} else {
 				_, err := pool.NewJobQueue(findGroups,
 					findArg{
 						arg.group.CopyGroupSet(),
-						arg.wordmap.CopyWordMap(),
+						zz,
 					})
 				if err !=nil {
 					info("error queuing job %v\n", err)
 				}
 				trace("%v\n", pool.PoolStats())
 			}
+			//fmt.Printf(")")
 		}
 	}
+	//fmt.Printf("<")
 	return
 }
 
@@ -262,6 +274,9 @@ func main() {
 	wmap := getWordsMap(GenVarOpts.InWordsFile)
 	verbose("map size: %d\ncontent:\n%s\n", wmap.Size(), wmap)
 
+	wmapImproved = getWordsMapImproved(GenVarOpts.InWordsFile)
+	verbose("map improved size: $v,\ncontent:\n%s\n", len(wmapImproved.Words), wmapImproved.Words)
+
 	// set the base group according to the required settings
 	baseGroup := cvc.NewGroupSetLimitFreq(
 		GenVarOpts.MaxSets,
@@ -293,7 +308,7 @@ func main() {
 		count := 0
 		i := 0
 		for {
-			 verbose("going to wait\n")
+			 trace("going to wait\n")
 			select {
 			case <-startedWorkers:
 				trace("startedWorkers")
@@ -338,7 +353,7 @@ func main() {
 						verbose("max depth : %d\n", maxSize)
 					}
 				} else if strings.HasPrefix(s, "status:") {
-					info("%s", s)
+					trace("%s", s)
 				} else {
 					GenVarOpts.countGroups++
 					out += s
@@ -367,9 +382,9 @@ func main() {
 	}()
 
 	if GenVarOpts.UsePool {
-		pool.NewJobQueue(findGroups, findArg{baseGroup, wmap})
+		pool.NewJobQueue(findGroups, findArg{baseGroup, &wmapImproved.BWords})
 	} else {
-		go findGroups(findArg{baseGroup, wmap}, nil, nil)
+		go findGroups(findArg{baseGroup, &wmapImproved.BWords}, nil, nil)
 	}
 
 	dur := time.Duration(GenVarOpts.TimeToRun)
@@ -428,6 +443,38 @@ func getMap(mapfile string) map[string]int {
 		ret[wf.word] = wf.number
 	}
 	return ret
+}
+
+func getWordsMapImproved(fname string) *cvc.WordMapImproved {
+	wmap := cvc.NewWordMapImproved()
+
+	for _, wf := range getWordsFromFile(fname) {
+		var cvcw *cvc.Word
+		wfV := string(wf.word[1])
+		if _, ok := vowels[wfV]; ok {
+			cvcw = cvc.NewWord(
+				string(wf.word[0]),
+				string(wf.word[1]),
+				string(wf.word[2:]),
+				wf.number)
+		} else {
+			cvcw = cvc.NewWord(
+				string(wf.word[0:2]),
+				string(wf.word[2]),
+				string(wf.word[3:]),
+				wf.number)
+		}
+
+		if wf.word != cvcw.String() {
+			panic("loaded word: " + wf.word + " and built word: " +
+				cvcw.String() + " are NOT the same")
+		}
+
+		if !wmap.AddWord(cvcw) {
+			panic(fmt.Sprintf("word: %v, already in word map: %v", cvcw, wmap))
+		}
+	}
+	return wmap
 }
 
 func getWordsMap(fname string) *cvc.WordMap {
@@ -497,6 +544,6 @@ func debug(f string, v ...interface{}) { if GenVarOpts.DebugEnabled { fmt.Printf
 
 func info(f string, v ...interface{}) { if len(GenVarOpts.Verbose) >= 1 && GenVarOpts.Verbose[0] { fmt.Printf("info: "+f, v...) } }
 
-func verbose(f string, v ...interface{}) { if len(GenVarOpts.Verbose) >= 2 && GenVarOpts.Verbose[1] { fmt.Printf("verbose" + f, v...) } }
+func verbose(f string, v ...interface{}) { if len(GenVarOpts.Verbose) >= 2 && GenVarOpts.Verbose[1] { fmt.Printf("verbose: " + f, v...) } }
 
-func trace(f string, v ...interface{}) { if len(GenVarOpts.Verbose) >= 3 && GenVarOpts.Verbose[2] { fmt.Printf("trace" + f, v...) } }
+func trace(f string, v ...interface{}) { if len(GenVarOpts.Verbose) >= 3 && GenVarOpts.Verbose[2] { fmt.Printf("trace: " + f, v...) } }

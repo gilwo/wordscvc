@@ -445,7 +445,7 @@ func (wg *GroupSet) CopyGroupSet() *GroupSet {
 	return newgroup
 }
 
-// Checkifavailable : TODO: fill me
+//// Checkifavailable : TODO: fill me
 func (wg *GroupSet) Checkifavailable(wmap *WordMap) bool {
 	if wg.MaxSize()-wg.CurrentSize() > wmap.count {
 		fmt.Printf("missing : %d, available %d\n", int(wg.MaxSize())-int(wg.CurrentSize()),
@@ -480,6 +480,116 @@ func (wg *GroupSet) Checkifavailable(wmap *WordMap) bool {
 // ***************************************
 //           WordMap
 // ***************************************
+
+type WordsBArr []uint16
+
+func (wb *WordsBArr) CopyWordsB() (wArr *WordsBArr) {
+	wArr = &WordsBArr{}
+	for _, e := range *wb {
+		*wArr = append(*wArr, e)
+	}
+	return
+}
+
+func (wb *WordsBArr) DelWord(w *Word, wmapi *WordMapImproved) {
+	if w == nil || wmapi == nil {
+		panic(fmt.Sprintf("empty word [%p] / map [%p]", w, wmapi))
+	}
+	id := wmapi.GetWordId(w)
+	for i, e := range *wb {
+		if id == e {
+			*wb = append((*wb)[:i], (*wb)[i+1:]...)
+			break
+		}
+	}
+}
+
+// Checkifavailable : TODO: fill me
+func (wb *WordsBArr) Checkifavailable(wg *GroupSet, wmapi *WordMapImproved) bool {
+	if wg.MaxSize() - wg.CurrentSize() > len(*wb) {
+		fmt.Printf("missing : %d, available %d\n", int(wg.MaxSize())-int(wg.CurrentSize()), len(*wb))
+		return false
+	}
+	aboveFreqRequiredCount := wg.freqabove * wg.grouplimit
+	belowFreqRequiredCount := wg.grouplimit * wg.persetlimit - aboveFreqRequiredCount
+
+	aboveFreqCurrentCount := wg.count * wg.freqabove
+	belowFreqCurrentCount := wg.count * (wg.persetlimit - wg.freqabove)
+
+	aboveFreqMissing := aboveFreqRequiredCount - aboveFreqCurrentCount
+	belowFreqMissing := belowFreqRequiredCount - belowFreqCurrentCount
+
+	var aboveAvailableCount, belowAvailableCount int
+	for _, v := range *wb {
+
+		if wmapi.GetWord(v).freq > wg.freqcutoff {
+			aboveAvailableCount++
+		} else {
+			belowAvailableCount++
+		}
+	}
+	if belowAvailableCount < belowFreqMissing || aboveAvailableCount < aboveFreqMissing {
+		return false
+	}
+
+	return true
+}
+
+// improved representation of word map, words are for iteration are stored in packed format, packed using uint16 type
+// can represent max of 2^16 - 1 words
+type WordMapImproved struct {
+	bwMap  map[uint16]*Word
+	wbMap  map[*Word]uint16
+	Words  []*Word
+	BWords WordsBArr
+	idx    uint16
+	count  uint16
+}
+
+// NewWordMapImproved : TODO fill me
+func NewWordMapImproved() (wmap *WordMapImproved) {
+	wmap = &WordMapImproved{
+		bwMap: make(map[uint16]*Word),
+		wbMap: make(map[*Word]uint16),
+		idx: 1,
+	}
+	return
+}
+
+// AddWord TODO: fill me
+func (wmap *WordMapImproved) AddWord(w *Word) bool {
+	if _, w_already := wmap.wbMap[w]; w_already {
+		// word already in map
+		return false
+	}
+	if _, b_already := wmap.bwMap[wmap.idx]; b_already {
+		// index already in map
+		return false
+	}
+	wmap.bwMap[wmap.idx] = w
+	wmap.wbMap[w] = wmap.idx
+	wmap.Words = append(wmap.Words, w)
+	wmap.BWords = append(wmap.BWords, wmap.idx)
+	wmap.idx++
+	wmap.count++
+	return true
+}
+
+func (wmap *WordMapImproved) GetWord(id uint16) (w *Word) {
+	if v, ok := wmap.bwMap[id]; ok {
+		w = v
+	}
+	return
+}
+
+func (wmap *WordMapImproved) GetWordId(w *Word) (id uint16) {
+	if v, ok := wmap.wbMap[w]; ok {
+		id = v
+	}
+	return
+}
+
+//func ()
 
 // WordMap : TODO: fill me
 type WordMap struct {
